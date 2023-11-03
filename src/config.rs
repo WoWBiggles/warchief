@@ -1,10 +1,14 @@
 use config::{Config, File, FileFormat};
 
-pub const CONFIG_DB_URL: &str = "db.url";
+pub const DB_URL: &str = "db.url";
 
 pub const RECAPTCHA_SECRET: &str = "recaptcha.secret";
 
-pub const CONFIG_GEOIP_ENABLED: &str = "geoip.enabled";
+pub const GEOIP_ENABLED: &str = "geoip.enabled";
+pub const GEOIP_WHITELISTED_COUNTRIES: &str = "geoip.whitelist.countries";
+pub const GEOIP_WHITELISTED_CONTINENTS: &str = "geoip.whitelist.continents";
+pub const GEOIP_BLACKLISTED_COUNTRIES: &str = "geoip.blacklist.countries";
+pub const GEOIP_BLACKLISTED_CONTINENTS: &str = "geoip.blacklist.continents";
 
 pub fn init_config() -> Config {
     Config::builder()

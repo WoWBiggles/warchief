@@ -5,7 +5,6 @@ use axum::{
     routing::{get, get_service, post},
     Form, Router,
 };
-use geolocate::geolocate_ip_country;
 use num_bigint::{BigInt, Sign};
 use recaptcha::verify_recaptcha;
 use serde::Deserialize;
@@ -14,7 +13,7 @@ use std::{net::SocketAddr, sync::Arc};
 use templates::RegisterTemplate;
 use tower_http::services::ServeDir;
 
-use crate::{config::init_config, geolocate::load_mmdb_data};
+use crate::{config::init_config, geolocate::{load_mmdb_data, check_ip}};
 
 mod config;
 mod crypto;
@@ -38,7 +37,7 @@ async fn main() {
     let config = init_config();
 
     let db_url = config
-        .get_string(config::CONFIG_DB_URL)
+        .get_string(config::DB_URL)
         .expect("Database configuration should have a connection string.");
     let pool = MySqlPoolOptions::new()
         .max_connections(10)
@@ -62,7 +61,7 @@ async fn main() {
         .fallback(get_service(ServeDir::new("assets")))
         .with_state(shared_state);
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
     tracing::info!("listening on {}", addr);
     axum::Server::bind(&addr)
         .serve(app.into_make_service_with_connect_info::<SocketAddr>())
@@ -106,12 +105,24 @@ async fn register(
 
     let geoip_enabled = state
         .config
-        .get_bool(config::CONFIG_GEOIP_ENABLED)
+        .get_bool(config::GEOIP_ENABLED)
         .unwrap_or(false);
     if !addr.ip().is_loopback() && geoip_enabled {
-        match geolocate_ip_country(&state.mmdb_data, addr.ip()) {
-            Ok(location) => tracing::info!("geolocate {:?}", location),
-            Err(e) => tracing::error!("geolocate error {:?} for {}", e, addr.ip()),
+        match check_ip(&state.config, &state.mmdb_data, addr.ip()) {
+            Ok(allowed) => {
+                if !allowed {
+                    return RegisterTemplate {
+                        success: Some(false),
+                        error: Some(format!("Your country or continent is banned from creating an account on this server."))
+                    }
+                } 
+            },
+            Err(e) => {
+                return RegisterTemplate {
+                    success: Some(false),
+                    error: Some(format!("Failed to geolocate your IP: {:?}", e))
+                }
+            },
         }
     }
 

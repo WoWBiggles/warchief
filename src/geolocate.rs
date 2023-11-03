@@ -2,19 +2,71 @@
 use std::str::FromStr;
 use std::{io, net::IpAddr};
 
+use ::config::Config;
 use geoip2::{Country, Error, Reader};
 
-use crate::structs::IpLocation;
+use crate::{structs::IpLocation, config};
 
 pub fn load_mmdb_data() -> Result<Vec<u8>, io::Error> {
     std::fs::read("static/GeoLite2-Country.mmdb")
 }
 
-pub fn geolocate_ip_country(mmdb_buffer: &Vec<u8>, ip: IpAddr) -> Result<IpLocation, Error> {
+fn geolocate_ip_country(mmdb_buffer: &Vec<u8>, ip: IpAddr) -> Result<IpLocation, Error> {
     let reader = Reader::<Country>::from_bytes(mmdb_buffer)?;
     let result = reader.lookup(ip)?;
 
     Ok(IpLocation::new(result.country, result.continent))
+}
+
+pub fn check_ip(config: &Config, mmdb_buffer: &Vec<u8>, ip: IpAddr) -> Result<bool, Error> {
+    let location = geolocate_ip_country(mmdb_buffer, ip)?;
+
+    let location_country = location.country_code.unwrap_or_default();
+    let location_continent = location.continent_code.unwrap_or_default();
+
+    let whitelist_countries = config.get::<Vec<String>>(config::GEOIP_WHITELISTED_COUNTRIES).unwrap_or_default();
+    let blacklist_countries = config.get::<Vec<String>>(config::GEOIP_BLACKLISTED_COUNTRIES).unwrap_or_default();
+
+    let whitelist_continents = config.get::<Vec<String>>(config::GEOIP_WHITELISTED_CONTINENTS).unwrap_or_default();
+    let blacklist_continents = config.get::<Vec<String>>(config::GEOIP_BLACKLISTED_CONTINENTS).unwrap_or_default();
+
+    tracing::info!("Checking ({}, {}) against whitelist ({:?}, {:?}) and blacklist ({:?}, {:?})", location_country, location_continent, whitelist_countries, whitelist_continents, blacklist_countries, blacklist_continents);
+
+    if whitelist_countries.len() > 0 && blacklist_countries.len() > 0 {
+        panic!("Config has both whitelisted and blacklisted countries, please only define a blacklist or a whitelist");
+    } else if whitelist_countries.len() > 0 {
+        if whitelist_countries.contains(&location_country) {
+            tracing::debug!("Country {} is whitelisted", location_country);
+            return Ok(true);
+        } else {
+            tracing::debug!("Country {} is not whitelisted", location_country);
+            return Ok(false);
+        }
+    } else if blacklist_countries.len() > 0 {
+        if blacklist_countries.contains(&location_country) {
+            tracing::debug!("Country {} is blacklisted", location_country);
+            return Ok(false);
+        }
+    }
+
+    if whitelist_continents.len() > 0 && blacklist_continents.len() > 0 {
+        panic!("Config has both whitelisted and blacklisted continents, please only define a blacklist or a whitelist");
+    } else if whitelist_continents.len() > 0 {
+        if whitelist_continents.contains(&location_continent) {
+            tracing::debug!("Continent {} is whitelisted", location_continent);
+            return Ok(true);
+        } else {
+            tracing::debug!("Continent {} is not whitelisted", location_continent);
+            return Ok(false);
+        }
+    } else if blacklist_continents.len() > 0 {
+        if blacklist_continents.contains(&location_continent) {
+            tracing::debug!("Continent {} is blacklisted", location_continent);
+            return Ok(false);
+        }
+    }
+
+    Ok(true)
 }
 
 #[cfg(test)]
