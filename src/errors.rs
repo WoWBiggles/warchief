@@ -9,4 +9,10 @@ pub enum AuthenticationError {
     InvalidPublicKey(#[from] InvalidPublicKeyError),
     #[error("incorrect password")]
     IncorrectPassword(#[from] MatchProofsError),
+    #[error("failed recaptcha: {0}")]
+    FailedRecaptcha(String),
+    #[error("existing username")]
+    ExistingUser,
+    #[error("database error")]
+    DatabaseError(#[from] sqlx::Error),
 }

@@ -14,22 +14,33 @@
 <body>
     <div class="header-image"></div>
     <div class="centered">
-        <form action="/register" id="register-form" method="POST" class="form">
-            <div>
-                <label for="username">Account Name</label> 
-                <input class="input" type="text" name="username" id="username" required>
-            </div>
-            <div>
-                <label for="password">Account Password</label> 
-                <input class="input" type="password" name="password" id="password" required>
-            </div>
-            <button class="g-recaptcha submit" 
-            data-sitekey="6Ld5fe0oAAAAAO9_T7rPsQjYBCeaekLWCiiM6pwg" 
-            data-callback='onSubmit' 
-            data-action='submit'>
-                Submit
-            </button>
-        </form>
+        <div class="formWrapper">
+            <form action="/register" id="register-form" method="POST" class="form">
+                <div>
+                    <label for="username">Account Name</label> 
+                    <input class="input" type="text" name="username" id="username" required>
+                </div>
+                <div>
+                    <label for="password">Account Password</label> 
+                    <input class="input" type="password" name="password" id="password" required>
+                </div>
+                <div>
+                    <button class="g-recaptcha submit" 
+                    data-sitekey="6Ld5fe0oAAAAAO9_T7rPsQjYBCeaekLWCiiM6pwg" 
+                    data-callback='onSubmit' 
+                    data-action='submit'>
+                        Submit
+                    </button>
+                </div>
+            </form>
+            {% match success %}
+                {% when Some with (true) %}
+                    <div class="success">Your account has been created!</div>
+                {% when Some with (false) %}
+                    <div class="error">{{ error.as_ref().unwrap() }}</div>
+                {% when None %}
+            {% endmatch %}
+        </div>
     </div>
 </body>
 </html>

@@ -5,11 +5,11 @@ use geoip2::{Country, Error, Reader};
 
 use crate::structs::IpLocation;
 
-fn load_mmdb_data() -> Result<Vec<u8>, io::Error> {
+pub fn load_mmdb_data() -> Result<Vec<u8>, io::Error> {
     std::fs::read("static/GeoLite2-Country.mmdb")
 }
 
-fn geolocate_ip_country(mmdb_buffer: &Vec<u8>, ip: IpAddr) -> Result<IpLocation, Error> {
+pub fn geolocate_ip_country(mmdb_buffer: &Vec<u8>, ip: IpAddr) -> Result<IpLocation, Error> {
     let reader = Reader::<Country>::from_bytes(mmdb_buffer)?;
     let result = reader.lookup(ip)?;
 

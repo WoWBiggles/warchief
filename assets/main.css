@@ -45,16 +45,10 @@ body {
     align-items: center;
 }
 
-.form {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: center;
-    gap: 2em;
-
+.formWrapper {
+    width: 16em;
     text-align: center;
-    margin: 10em 0 0 0;
-    padding: 1em 2em 0.5em 2em;
+
     background-color: #262523;
 
     border: 8px solid white;
@@ -62,6 +56,16 @@ body {
     border-image-slice: 8 8;
     border-image-repeat: round;
     border-radius: 8px;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 2em;
+
+    padding: 1em 2em 0.5em 2em;
 }
 
 label {
@@ -97,9 +101,22 @@ button {
     padding: 0.25em 0.75em;
     border: 3px solid black;
     border-radius: 5px;
+    background: url(ricepaper.png), rgba(0, 0, 0, 0.169);
+    background-repeat: repeat;
+    background-blend-mode: multiply;
 }
 
 button.submit {
     text-align: center;
     margin: -2em auto 0 auto;
+}
+
+.success {
+    color: #448FF2;
+    margin-top: 0.5em;
+}
+
+.error {
+    color: #9e2012;
+    margin-top: 0.5em;
 }
