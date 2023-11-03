@@ -1,5 +1,5 @@
-use geoip2::models::{Continent, Country, Traits};
-use sqlx::MySql;
+use geoip2::models::{Continent, Country};
+
 
 #[derive(PartialEq, Eq, Debug)]
 pub struct IpLocation {

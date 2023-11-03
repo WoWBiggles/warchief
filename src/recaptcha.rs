@@ -31,16 +31,22 @@ pub async fn verify_recaptcha(secret: String, token: String) -> Result<(), Authe
             Ok(json) => {
                 tracing::info!("Got score {}", json.score.unwrap_or(0f32));
                 if !json.success {
-                    Err(AuthenticationError::FailedRecaptcha(format!("Failed with error_codes: {:?}", json.error_codes)))
+                    Err(AuthenticationError::FailedRecaptcha(format!(
+                        "Failed with error_codes: {:?}",
+                        json.error_codes
+                    )))
                 } else {
                     Ok(())
                 }
             }
-            Err(e) => {
-                Err(AuthenticationError::FailedRecaptcha(format!("Failed to parse recaptcha response: {}", e.to_string())))
-            }
+            Err(e) => Err(AuthenticationError::FailedRecaptcha(format!(
+                "Failed to parse recaptcha response: {}",
+                e.to_string()
+            ))),
         }
     } else {
-        Err(AuthenticationError::FailedRecaptcha(String::from("Recaptcha request failed")))
+        Err(AuthenticationError::FailedRecaptcha(String::from(
+            "Recaptcha request failed",
+        )))
     }
 }

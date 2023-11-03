@@ -1,25 +1,20 @@
+use ::config::Config;
 use askama_axum::IntoResponse;
 use axum::{
     extract::{ConnectInfo, State},
-    http::StatusCode,
     routing::{get, get_service, post},
-    Form, Json, Router,
+    Form, Router,
 };
-use ::config::Config;
-use core::panic;
 use geolocate::geolocate_ip_country;
 use num_bigint::{BigInt, Sign};
 use recaptcha::verify_recaptcha;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use sqlx::{mysql::MySqlPoolOptions, MySql, Pool};
-use std::{
-    net::{IpAddr, SocketAddr},
-    sync::Arc,
-};
+use std::{net::SocketAddr, sync::Arc};
 use templates::RegisterTemplate;
 use tower_http::services::ServeDir;
 
-use crate::{geolocate::load_mmdb_data, config::init_config};
+use crate::{config::init_config, geolocate::load_mmdb_data};
 
 mod config;
 mod crypto;
@@ -42,7 +37,9 @@ async fn main() {
 
     let config = init_config();
 
-    let db_url = config.get_string(config::CONFIG_DB_URL).expect("Database configuration should have a connection string.");
+    let db_url = config
+        .get_string(config::CONFIG_DB_URL)
+        .expect("Database configuration should have a connection string.");
     let pool = MySqlPoolOptions::new()
         .max_connections(10)
         .connect(&db_url)
@@ -53,7 +50,11 @@ async fn main() {
 
     tracing::info!("Loaded MMDB {}", mmdb_data.len());
 
-    let shared_state = Arc::new(AppState { pool, mmdb_data, config });
+    let shared_state = Arc::new(AppState {
+        pool,
+        mmdb_data,
+        config,
+    });
 
     let app = Router::new()
         .route("/register", get(register_form))
@@ -86,8 +87,13 @@ async fn register(
     State(state): State<Arc<AppState>>,
     Form(form): Form<Register>,
 ) -> impl IntoResponse {
+    tracing::info!("Registration attempt from {}", addr.ip());
+
     if let Err(e) = verify_recaptcha(
-        state.config.get_string(config::RECAPTCHA_SECRET).expect("Recaptcha configuration requires a site secret."),
+        state
+            .config
+            .get_string(config::RECAPTCHA_SECRET)
+            .expect("Recaptcha configuration requires a site secret."),
         form.recaptcha,
     )
     .await
@@ -98,7 +104,10 @@ async fn register(
         };
     }
 
-    let geoip_enabled = state.config.get_bool(config::CONFIG_GEOIP_ENABLED).unwrap_or(false);
+    let geoip_enabled = state
+        .config
+        .get_bool(config::CONFIG_GEOIP_ENABLED)
+        .unwrap_or(false);
     if !addr.ip().is_loopback() && geoip_enabled {
         match geolocate_ip_country(&state.mmdb_data, addr.ip()) {
             Ok(location) => tracing::info!("geolocate {:?}", location),
@@ -131,7 +140,7 @@ async fn register(
                 errors::AuthenticationError::DatabaseError(e) => RegisterTemplate {
                     success: Some(false),
                     error: Some(format!("DB error: {}", e)),
-                }, 
+                },
                 _ => RegisterTemplate {
                     success: Some(false),
                     error: Some(format!("Unknown DB error {}", e)),

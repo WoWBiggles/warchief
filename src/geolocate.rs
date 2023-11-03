@@ -1,3 +1,4 @@
+#[allow(unused_imports)]
 use std::str::FromStr;
 use std::{io, net::IpAddr};
 
