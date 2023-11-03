@@ -1,0 +1,23 @@
+[package]
+name = "warchief"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+sqlx = { version = "0.7", features = [ "runtime-tokio", "tls-native-tls", "mysql" ] }
+thiserror = "1.0.50"
+wow_srp = { version = "0.6.0", features = ["srp-default-math"] }
+geoip2 = "0.1.6"
+axum = "0.6.20"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0.68"
+tokio = { version = "1.0", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+askama = { version = "0.12.1", features = ["with-axum"] }
+askama_axum = "0.3.0"
+tower-http = { version = "0.4.4", features = ["fs"] }
+hex = "0.4.3"
+num-bigint = "0.4.4"
