@@ -1,0 +1,10 @@
+{% extends "form.html" %}
+
+{% block title %}Login{% endblock %}
+{% block endpoint %}login{% endblock %}
+
+{% block response %}
+    {% if error.is_some() %}
+        <div class="error">{{ error.as_ref().unwrap() }}</div>
+    {% endif %}
+{% endblock %}

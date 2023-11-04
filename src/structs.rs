@@ -1,5 +1,5 @@
 use geoip2::models::{Continent, Country};
-
+use serde::Serialize;
 
 #[derive(PartialEq, Eq, Debug)]
 pub struct IpLocation {
