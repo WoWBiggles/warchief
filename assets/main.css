@@ -23,26 +23,39 @@ body {
     background-color: #0D0D0D;
 }
 
+.grecaptcha-badge { 
+    visibility: hidden;
+}
+
 .header-image {
     position: fixed;
     top: 0;
 
-    background-image: url(background2.png);
+    background-image: url(tirisfal.jpg);
+
     background-size: cover;
     background-position: bottom;
 
+    -webkit-mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
     mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
     width: 100vw;
     height: 40vh;
+
+    @supports (background-image: url(tirisfal.webp)) {
+        background-image: url(tirisfal.webp);
+    }
 }
 
 .centered {
-    width: 100%;
-    height: 100%;
+    position: absolute;
+    top: 45%;
+    left: 0;
+    right: 0;
+    bottom: 0;
 
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;
 }
 
 .formWrapper {
@@ -68,15 +81,19 @@ body {
     padding: 1em 2em 0.5em 2em;
 }
 
-label {
+label, h1, h2, h3, h4 {
     display: block;
 
     font-family: "Friz Quadrata";
-    font-size: 16px;
     text-shadow: 1px -1px #000000;
     color: #F2D4AE;
 
+    margin-top: 0;
     margin-bottom: 0.2em;
+}
+
+label {
+    font-size: 16px;
 }
 
 input {
@@ -91,7 +108,7 @@ input {
 
     width: 11em;
 
-    background-color: #11010122;
+    background-color: #11010122 !important;
     color: #fff;
 }
 
@@ -101,7 +118,7 @@ button {
     padding: 0.25em 0.75em;
     border: 3px solid black;
     border-radius: 5px;
-    background: url(ricepaper.png), rgba(0, 0, 0, 0.169);
+    background: url(button_background.jpg), rgba(0, 0, 0, 0.169);
     background-repeat: repeat;
     background-blend-mode: multiply;
 }

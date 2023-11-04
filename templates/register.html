@@ -1,10 +1,14 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="A World of Warcraft vanilla RP-PVP server.">
     <title>Test</title>
+    <link rel="preload" href="FrizQuadrataTT.woff2" as="font" type="font/woff2" crossorigin/>
+    <link rel="preload" href="FrizQuadrataTT.woff" as="font" type="font/woff" crossorigin>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" integrity="sha512-NhSC1YmyruXifcj/KFRWoC561YpHpc5Jtzgvbuzx5VozKpWvQ+4nXhPdFgmx8xqexRcpAglTj9sIBWINXa8x5w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="main.css">
-    <script src="https://www.google.com/recaptcha/api.js"></script>
     <script>
         function onSubmit(token) {
             document.getElementById("register-form").submit();
@@ -15,6 +19,9 @@
     <div class="header-image"></div>
     <div class="centered">
         <div class="formWrapper">
+            <h2>
+                Register
+            </h2>
             <form action="/register" id="register-form" method="POST" class="form">
                 <div>
                     <label for="username">Account Name</label> 
@@ -29,7 +36,7 @@
                     data-sitekey="6Ld5fe0oAAAAAO9_T7rPsQjYBCeaekLWCiiM6pwg" 
                     data-callback='onSubmit' 
                     data-action='submit'>
-                        Submit
+                        Register 
                     </button>
                 </div>
             </form>
@@ -42,5 +49,6 @@
             {% endmatch %}
         </div>
     </div>
+    <script src="https://www.google.com/recaptcha/api.js"></script>
 </body>
 </html>
