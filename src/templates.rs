@@ -1,14 +1,15 @@
 use askama::Template;
 
 #[derive(Template, Default)]
-#[template(path = "banned.html")]
-pub struct BannedTemplate {
+#[template(path = "error.html")]
+pub struct ErrorTemplate {
+    pub message: String,
 }
 
 #[derive(Template, Default)]
 #[template(path = "login.html")]
 pub struct LoginTemplate {
-    pub error: Option<String>,
+    error: Option<String>,
 }
 
 impl LoginTemplate {
@@ -24,6 +25,15 @@ impl LoginTemplate {
 pub struct RegisterTemplate {
     pub success: Option<bool>,
     pub error: Option<String>,
+}
+
+impl RegisterTemplate {
+    pub fn error(message: impl Into<String>) -> Self {
+        Self {
+            success: Some(false),
+            error: Some(message.into()),
+        }
+    }
 }
 
 #[derive(Template, Default)]

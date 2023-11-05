@@ -28,25 +28,22 @@ pub async fn login(
     tracing::info!("Login attempt from {}", addr.ip());
 
     if let Err(e) = recaptcha::verify_recaptcha(&state.config, form.recaptcha).await {
-        return templates::LoginTemplate {
-            error: Some(e.to_string()),
-        }
+        return templates::LoginTemplate::error(e.to_string())
         .into_response();
     }
 
     match geolocate::check_ip(&state.config, &state.mmdb_data, addr.ip()) {
         Ok(allowed) => {
             if !allowed {
-                return templates::LoginTemplate{
-                    error: Some(format!("Your country or continent is banned from creating an account on this server."))
-                }.into_response();
+                return templates::LoginTemplate::error(format!("Your country or continent is banned from creating an account on this server."))
+                    .into_response();
             }
         }
         Err(e) => {
-            return templates::LoginTemplate {
-                error: Some(format!("Failed to geolocate your IP: {:?}", e)),
-            }
-            .into_response();
+            return templates::LoginTemplate::error(
+                format!("Failed to geolocate your IP: {:?}", e)
+            )
+                .into_response();
         }
     }
 
@@ -79,20 +76,20 @@ pub async fn login(
             }
         }
         Err(e) => {
-            return templates::LoginTemplate {
-                error: Some(format!(
+            return templates::LoginTemplate::error(
+                format!(
                     "Could not find an account for that username {:?}",
                     e
-                )),
-            }
+                )
+            )
             .into_response()
         }
     };
 
     if let Err(e) = session.insert(consts::SESSION_ACCOUNT_DETAILS, account) {
-        return templates::LoginTemplate {
-            error: Some(format!("Failed to save session: {:?}", e)),
-        }
+        return templates::LoginTemplate::error (
+            format!("Failed to save session: {:?}", e)
+        )
         .into_response();
     }
 

@@ -4,8 +4,8 @@
 
 @font-face {
     font-family: 'Friz Quadrata';
-    src: url('FrizQuadrataTT.woff2') format('woff2'),
-        url('FrizQuadrataTT.woff') format('woff');
+    src: url(/FrizQuadrataTT.woff2) format('woff2'),
+        url(/FrizQuadrataTT.woff) format('woff');
     font-weight: normal;
     font-style: normal;
     font-display: swap;
@@ -31,7 +31,7 @@ body {
     position: fixed;
     top: 0;
 
-    background-image: url(tirisfal.jpg);
+    background-image: url(/tirisfal.jpg);
 
     background-size: cover;
     background-position: bottom;
@@ -41,8 +41,8 @@ body {
     width: 100vw;
     height: 40vh;
 
-    @supports (background-image: url(tirisfal.webp)) {
-        background-image: url(tirisfal.webp);
+    @supports (background-image: url(/tirisfal.webp)) {
+        background-image: url(/tirisfal.webp);
     }
 }
 
@@ -55,24 +55,26 @@ body {
     align-items: center;
 }
 
-.formWrapper {
-    z-index: 3;
-    text-align: center;
-
+.bordered-box {
     background-color: #262523;
 
     border: 8px solid white;
-    border-image-source: url(border.png);
+    border-image-source: url(/border.png);
     border-image-slice: 8 8;
     border-image-repeat: round;
     border-radius: 8px;
 }
 
-.loginRegistration {
+.form-wrapper {
+    z-index: 3;
+    text-align: center;
+}
+
+.form-wrapper .login-registration {
     width: 16em;
 }
 
-.accountManagement {
+.form-wrapper .account-management {
     width: 40em;
 }
 
@@ -105,7 +107,7 @@ input {
     font-size: 14px;
 
     border: 8px solid white;
-    border-image-source: url(border.png);
+    border-image-source: url(/border.png);
     border-image-slice: 8 8;
     border-image-repeat: round;
     border-radius: 8px;
@@ -122,7 +124,7 @@ button {
     padding: 0.25em 0.75em;
     border: 3px solid black;
     border-radius: 5px;
-    background: url(button_background.jpg), rgba(0, 0, 0, 0.169);
+    background: url(/button_background.jpg), rgba(0, 0, 0, 0.169);
     background-repeat: repeat;
     background-blend-mode: multiply;
 }

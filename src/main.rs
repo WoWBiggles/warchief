@@ -6,7 +6,7 @@ use axum::{
     middleware::{self, Next},
     response::{Redirect, Response},
     routing::{get, get_service, post},
-    BoxError, Router,
+    BoxError, Router, extract::Path,
 };
 
 use db::Account;
@@ -15,7 +15,7 @@ use http::StatusCode;
 
 use sqlx::{mysql::MySqlPoolOptions, MySql, Pool};
 use std::{net::SocketAddr, sync::Arc};
-use templates::{AccountManagementTemplate, BannedTemplate};
+use templates::{AccountManagementTemplate, ErrorTemplate};
 use tower::ServiceBuilder;
 use tower_http::services::ServeDir;
 use tower_sessions::{cookie::time::Duration, Expiry, MemoryStore, Session, SessionManagerLayer};
@@ -50,7 +50,7 @@ async fn auth_middleware<B>(session: Session, request: Request<B>, next: Next<B>
     match account {
         Some(a) => {
             if a.banned {
-                return Redirect::to("/banned").into_response();
+                return Redirect::to("/error/banned").into_response();
             }
         }
         None => {
@@ -102,7 +102,7 @@ async fn main() {
         .route("/account_management", get(account_management))
         .layer(middleware::from_fn(auth_middleware))
         .route("/", get(|| async { Redirect::permanent("/login") }))
-        .route("/banned", get(banned))
+        .route("/error/:error_code", get(error))
         .route("/login", get(routes::forms::login_form))
         .route("/login", post(routes::forms::login))
         .route("/register", get(routes::forms::register_form))
@@ -119,8 +119,10 @@ async fn main() {
         .unwrap();
 }
 
-async fn banned() -> impl IntoResponse {
-    BannedTemplate::default()
+async fn error(Path(error_code): Path<errors::ErrorCode>) -> impl IntoResponse {
+    ErrorTemplate {
+        message: error_code.to_string(),
+    }
 }
 
 async fn account_management() -> impl IntoResponse {
