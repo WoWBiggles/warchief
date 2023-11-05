@@ -25,6 +25,7 @@ pub struct Account {
     pub gmlevel: GmLevel,
     pub v: String,
     pub s: String,
+    pub banned: bool,
 }
 
 pub async fn add_account(
@@ -71,7 +72,7 @@ pub async fn get_account(
     pool: &Pool<MySql>,
     username: &String,
 ) -> Result<Account, AuthenticationError> {
-    match sqlx::query!("SELECT id, username, gmlevel, v, s FROM account WHERE username = ?", username)
+    match sqlx::query!("SELECT a.id, a.username, a.gmlevel, a.v, a.s, ab.banid as `ban_id?` FROM account a LEFT JOIN account_banned ab ON ab.id = a.id WHERE username = ?", username)
             .fetch_one(pool)
             .await
     {
@@ -82,6 +83,7 @@ pub async fn get_account(
                 gmlevel: account.gmlevel.into(),
                 v: account.v.ok_or(AuthenticationError::MissingSrpValues(String::from("v")))?,
                 s: account.s.ok_or(AuthenticationError::MissingSrpValues(String::from("s")))?,
+                banned: account.ban_id.is_some(),
             })
         },
         Err(e) => Err(AuthenticationError::DatabaseError(e)),

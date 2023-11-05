@@ -2,10 +2,28 @@
 use std::str::FromStr;
 use std::{io, net::IpAddr};
 
+use crate::config;
 use ::config::Config;
-use geoip2::{Country, Error, Reader};
+use geoip2::{Country, Error, Reader, models};
 
-use crate::{config, structs::IpLocation};
+#[derive(PartialEq, Eq, Debug)]
+pub struct IpLocation {
+    pub country_code: Option<String>,
+    pub continent_code: Option<String>,
+}
+
+impl IpLocation {
+    pub fn new(country: Option<models::Country>, continent: Option<models::Continent>) -> Self {
+        IpLocation {
+            country_code: country
+                .map(|c| c.iso_code.map(|code| code.to_string()))
+                .flatten(),
+            continent_code: continent
+                .map(|c| c.code.map(|code| code.to_string()))
+                .flatten(),
+        }
+    }
+}
 
 pub fn load_mmdb_data() -> Result<Vec<u8>, io::Error> {
     std::fs::read("static/GeoLite2-Country.mmdb")

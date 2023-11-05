@@ -5,26 +5,27 @@ use axum::{
     extract::{ConnectInfo, State},
     http::Request,
     middleware::{self, Next},
-    response::{Response, Redirect},
+    response::{Redirect, Response},
     routing::{get, get_service, post},
     BoxError, Form, Router,
 };
 
 use db::Account;
 use http::StatusCode;
-use num_bigint::{BigInt, Sign};
 use recaptcha::verify_recaptcha;
 use serde::Deserialize;
 use sqlx::{mysql::MySqlPoolOptions, MySql, Pool};
 use std::{net::SocketAddr, sync::Arc};
-use templates::{RegisterTemplate, LoginTemplate};
+use templates::{AccountManagementTemplate, BannedTemplate, LoginTemplate, RegisterTemplate};
 use tower::ServiceBuilder;
 use tower_http::services::ServeDir;
 use tower_sessions::{cookie::time::Duration, Expiry, MemoryStore, Session, SessionManagerLayer};
 
 use crate::{
     config::init_config,
-    geolocate::{check_ip, load_mmdb_data}, db::get_account, crypto::verify_password, errors::AuthenticationError,
+    crypto::verify_password,
+    db::get_account,
+    geolocate::{check_ip, load_mmdb_data},
 };
 
 mod config;
@@ -34,7 +35,7 @@ mod db;
 mod errors;
 mod geolocate;
 mod recaptcha;
-mod structs;
+mod routes;
 mod templates;
 
 #[derive(Clone)]
@@ -45,8 +46,19 @@ struct AppState {
 }
 
 async fn auth_middleware<B>(session: Session, request: Request<B>, next: Next<B>) -> Response {
-    if session.get::<Account>(consts::SESSION_ACCOUNT_DETAILS).ok().flatten().is_none() {
-        return Redirect::to("/login").into_response()
+    let account = session
+        .get::<Account>(consts::SESSION_ACCOUNT_DETAILS)
+        .ok()
+        .flatten();
+    match account {
+        Some(a) => {
+            if a.banned {
+                return Redirect::to("/banned").into_response();
+            }
+        }
+        None => {
+            return Redirect::to("/login").into_response();
+        }
     }
 
     let response = next.run(request).await;
@@ -90,12 +102,14 @@ async fn main() {
     });
 
     let app = Router::new()
-        .route("/test", get(test))
+        .route("/account_management", get(account_management))
         .layer(middleware::from_fn(auth_middleware))
-        .route("/login", get(login_form))
-        .route("/login", post(login))
-        .route("/register", get(register_form))
-        .route("/register", post(register))
+        .route("/", get(|| async { Redirect::permanent("/login") }))
+        .route("/banned", get(banned))
+        .route("/login", get(routes::forms::login_form))
+        .route("/login", post(routes::forms::login))
+        .route("/register", get(routes::forms::register_form))
+        .route("/register", post(routes::forms::register))
         .fallback(get_service(ServeDir::new("assets")))
         .layer(session_service)
         .with_state(shared_state);
@@ -108,165 +122,10 @@ async fn main() {
         .unwrap();
 }
 
-async fn test() -> String {
-    String::from("Testing")
+async fn banned() -> impl IntoResponse {
+    BannedTemplate::default()
 }
 
-async fn login_form() -> impl IntoResponse {
-    LoginTemplate::default()
-}
-
-#[derive(Deserialize, Debug)]
-struct UserForm {
-    username: String,
-    password: String,
-    #[serde(rename = "g-recaptcha-response")]
-    recaptcha: String,
-}
-
-async fn login(
-    session: Session,
-    ConnectInfo(addr): ConnectInfo<SocketAddr>,
-    State(state): State<Arc<AppState>>,
-    Form(form): Form<UserForm>,
-) -> impl IntoResponse {
-    tracing::info!("Login attempt from {}", addr.ip());
-
-    if let Err(e) = verify_recaptcha(
-        state
-            .config
-            .get_string(config::RECAPTCHA_SECRET)
-            .expect("Recaptcha configuration requires a site secret."),
-        form.recaptcha,
-    )
-    .await
-    {
-        return LoginTemplate {
-            error: Some(e.to_string()),
-        }.into_response();
-    }
-
-    match check_ip(&state.config, &state.mmdb_data, addr.ip()) {
-        Ok(allowed) => {
-            if !allowed {
-                return LoginTemplate{
-                    error: Some(format!("Your country or continent is banned from creating an account on this server."))
-                }.into_response();
-            }
-        }
-        Err(e) => {
-            return LoginTemplate{
-                error: Some(format!("Failed to geolocate your IP: {:?}", e)),
-            }.into_response();
-        }
-    }
-
-    let account = match get_account(&state.pool, &form.username).await {
-        Ok(account) => {
-            match verify_password(&form.username, &form.password, &account.v, &account.s) {
-                Ok(_) => account,
-                Err(e) => {
-                    return LoginTemplate {
-                        error: Some(format!("Failed to login: {:?}", e))
-                    }.into_response()
-                },
-            }
-        },
-        Err(e) => return LoginTemplate {
-            error: Some(format!("Could not find an account for that username {:?}", e))
-        }.into_response(),
-    };
-
-    session.insert(consts::SESSION_ACCOUNT_DETAILS, account).expect("New session details saved");
-
-    Redirect::to("/test").into_response()
-}
-
-async fn register_form() -> impl IntoResponse {
-    RegisterTemplate::default()
-}
-
-async fn register(
-    session: Session,
-    ConnectInfo(addr): ConnectInfo<SocketAddr>,
-    State(state): State<Arc<AppState>>,
-    Form(form): Form<UserForm>,
-) -> impl IntoResponse {
-    tracing::info!("Registration attempt from {}", addr.ip());
-
-    if let Err(e) = verify_recaptcha(
-        state
-            .config
-            .get_string(config::RECAPTCHA_SECRET)
-            .expect("Recaptcha configuration requires a site secret."),
-        form.recaptcha,
-    )
-    .await
-    {
-        return RegisterTemplate {
-            success: Some(false),
-            error: Some(e.to_string()),
-        };
-    }
-
-    tracing::info!("Recaptcha passed by {}", addr.ip());
-
-    match check_ip(&state.config, &state.mmdb_data, addr.ip()) {
-        Ok(allowed) => {
-            if !allowed {
-                return RegisterTemplate {
-                    success: Some(false),
-                    error: Some(format!("Your country or continent is banned from creating an account on this server."))
-                };
-            }
-        }
-        Err(e) => {
-            return RegisterTemplate {
-                success: Some(false),
-                error: Some(format!("Failed to geolocate your IP: {:?}", e)),
-            }
-        }
-    }
-
-    tracing::info!("GeoIp passed by {}", addr.ip());
-
-    if let Ok((username, verifier, salt)) =
-        crypto::generate_srp_values(&form.username, &form.password)
-    {
-        match db::add_account(
-            &state.pool,
-            username,
-            verifier,
-            salt,
-        )
-        .await
-        {
-            Ok(()) => {
-                tracing::info!("Successful registation from {}", addr.ip());
-                RegisterTemplate {
-                    success: Some(true),
-                    error: None,
-                }
-            }
-            Err(e) => match e {
-                errors::AuthenticationError::ExistingUser => RegisterTemplate {
-                    success: Some(false),
-                    error: Some(String::from("Existing user found with that username")),
-                },
-                errors::AuthenticationError::DatabaseError(e) => RegisterTemplate {
-                    success: Some(false),
-                    error: Some(format!("DB error: {}", e)),
-                },
-                _ => RegisterTemplate {
-                    success: Some(false),
-                    error: Some(format!("Unknown DB error {}", e)),
-                },
-            },
-        }
-    } else {
-        RegisterTemplate {
-            success: Some(false),
-            error: Some(String::from("Generating SRP values failed")),
-        }
-    }
+async fn account_management() -> impl IntoResponse {
+    AccountManagementTemplate::default()
 }

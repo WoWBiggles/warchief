@@ -10,7 +10,7 @@ sqlx = { version = "0.7", features = [ "runtime-tokio", "tls-native-tls", "mysql
 thiserror = "1.0.50"
 wow_srp = { version = "0.6.0", features = ["srp-default-math"] }
 geoip2 = "0.1.6"
-axum = "0.6.20"
+axum = { version = "0.6.20", features = ["query"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.68"
 tokio = { version = "1.0", features = ["full"] }

@@ -47,19 +47,16 @@ body {
 }
 
 .centered {
-    position: absolute;
-    top: 45%;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    height: 100%;
+    width: 100%;
 
     display: flex;
     justify-content: center;
-    align-items: flex-start;
+    align-items: center;
 }
 
 .formWrapper {
-    width: 16em;
+    z-index: 3;
     text-align: center;
 
     background-color: #262523;
@@ -69,6 +66,14 @@ body {
     border-image-slice: 8 8;
     border-image-repeat: round;
     border-radius: 8px;
+}
+
+.loginRegistration {
+    width: 16em;
+}
+
+.accountManagement {
+    width: 40em;
 }
 
 .form {
@@ -81,15 +86,14 @@ body {
     padding: 1em 2em 0.5em 2em;
 }
 
-label, h1, h2, h3, h4 {
+label, h1, h2, h3, h4, h5 {
     display: block;
 
     font-family: "Friz Quadrata";
     text-shadow: 1px -1px #000000;
     color: #F2D4AE;
 
-    margin-top: 0;
-    margin-bottom: 0.2em;
+    margin: 0;
 }
 
 label {
@@ -130,10 +134,8 @@ button.submit {
 
 .success {
     color: #448FF2;
-    margin-top: 0.5em;
 }
 
 .error {
     color: #9e2012;
-    margin-top: 0.5em;
 }

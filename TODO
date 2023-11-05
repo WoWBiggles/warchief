@@ -3,16 +3,18 @@ Web interface to interact with vMangos accounts:
 	- Create new accounts:
 		- Email verification (optional)
 		x IP checks (optional, GeoIP or IP blacklisting)
+		- Take into account banned ips table
 		- Password requirements (optional)
 		x ReCaptcha (optional)
-		- Logs of failed attempts (without passwords)
+		- Logs of failed attempts
 
 	- Login and manage accounts / view characters:
+		- Take into account banned accounts table
 		- Change password
 		- View current list of characters
 
 	- GM:
-		- View characters by name and linked accounts.
+		- View characters by name and linked accounts (optional if mangos db connection provided)
 		- See logins by IP
 		- See user stats split by country
 		- View flagged accounts (logins with multiple IPs from multiple countries?)

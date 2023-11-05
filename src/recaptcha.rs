@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
+use config::Config;
 use serde::Deserialize;
 
-use crate::errors::AuthenticationError;
+use crate::{errors::AuthenticationError, config::RECAPTCHA_SECRET};
 
 #[derive(Deserialize, Debug)]
 struct RecaptchaResponse {
@@ -14,7 +15,10 @@ struct RecaptchaResponse {
     error_codes: Option<Vec<String>>,
 }
 
-pub async fn verify_recaptcha(secret: String, token: String) -> Result<(), AuthenticationError> {
+pub async fn verify_recaptcha(config: &Config, token: String) -> Result<(), AuthenticationError> {
+    let secret = config.get_string(RECAPTCHA_SECRET)
+        .expect("Recaptcha configuration requires a site secret.");
+
     let mut body = HashMap::new();
     body.insert("secret", secret);
     body.insert("response", token);
