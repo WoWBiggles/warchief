@@ -33,20 +33,20 @@ pub fn verify_password(
     let password = NormalizedString::new(password)?;
 
     let verifier = hex::decode(password_verifier)
-        .map_err(|e| AuthenticationError::InvalidSrpValues(String::from("v")))?;
+        .map_err(|_| AuthenticationError::InvalidSrpValues(String::from("v")))?;
     let salt = hex::decode(salt)
-        .map_err(|e| AuthenticationError::InvalidSrpValues(String::from("s")))?;
+        .map_err(|_| AuthenticationError::InvalidSrpValues(String::from("s")))?;
 
     let (_, verifier_le) = BigInt::from_bytes_be(Sign::Plus, &verifier).to_bytes_le();
     let (_, salt_le) = BigInt::from_bytes_be(Sign::Plus, &salt).to_bytes_le();
 
     let verifier_le: [u8; PASSWORD_VERIFIER_LENGTH as usize] = verifier_le
         .try_into()
-        .map_err(|e| AuthenticationError::InvalidSrpValues(String::from("v")))?;
+        .map_err(|_| AuthenticationError::InvalidSrpValues(String::from("v")))?;
 
     let salt_le: [u8; SALT_LENGTH as usize] = salt_le
         .try_into()
-        .map_err(|e| AuthenticationError::InvalidSrpValues(String::from("s")))?;
+        .map_err(|_| AuthenticationError::InvalidSrpValues(String::from("s")))?;
 
     let verifier = SrpVerifier::from_database_values(username.clone(), verifier_le, salt_le);
     let server_proof = verifier.into_proof();

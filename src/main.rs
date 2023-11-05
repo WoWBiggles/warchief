@@ -2,30 +2,27 @@ use ::config::Config;
 use askama_axum::IntoResponse;
 use axum::{
     error_handling::HandleErrorLayer,
-    extract::{ConnectInfo, State},
     http::Request,
     middleware::{self, Next},
     response::{Redirect, Response},
     routing::{get, get_service, post},
-    BoxError, Form, Router,
+    BoxError, Router,
 };
 
 use db::Account;
 use http::StatusCode;
-use recaptcha::verify_recaptcha;
-use serde::Deserialize;
+
+
 use sqlx::{mysql::MySqlPoolOptions, MySql, Pool};
 use std::{net::SocketAddr, sync::Arc};
-use templates::{AccountManagementTemplate, BannedTemplate, LoginTemplate, RegisterTemplate};
+use templates::{AccountManagementTemplate, BannedTemplate};
 use tower::ServiceBuilder;
 use tower_http::services::ServeDir;
 use tower_sessions::{cookie::time::Duration, Expiry, MemoryStore, Session, SessionManagerLayer};
 
 use crate::{
     config::init_config,
-    crypto::verify_password,
-    db::get_account,
-    geolocate::{check_ip, load_mmdb_data},
+    geolocate::load_mmdb_data,
 };
 
 mod config;
