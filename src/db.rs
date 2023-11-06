@@ -70,6 +70,24 @@ pub async fn add_account(
     Ok(())
 }
 
+pub async fn update_srp_values(
+    pool: &Pool<MySql>,
+    username: String,
+    verifier_hex: String,
+    salt_hex: String,
+) -> Result<(), AuthenticationError> {
+    sqlx::query!(
+        "UPDATE account SET v = ?, s = ? WHERE username = ?",
+        verifier_hex,
+        salt_hex,
+        username,
+    )
+    .execute(pool)
+    .await?;
+
+    Ok(())
+}
+
 pub async fn get_account(
     pool: &Pool<MySql>,
     username: &String,
@@ -92,10 +110,7 @@ pub async fn get_account(
     }
 }
 
-pub async fn is_ip_banned(
-    pool: &Pool<MySql>,
-    ip: IpAddr,
-) -> bool {
+pub async fn is_ip_banned(pool: &Pool<MySql>, ip: IpAddr) -> bool {
     let record = sqlx::query!("SELECT ip as `ip?` FROM ip_banned WHERE unbandate IS null OR unbandate > UNIX_TIMESTAMP(NOW()) AND ip = ?", ip.to_string()).fetch_one(pool).await;
     tracing::info!("{:?} {:?}", record, ip.to_string());
     if let Ok(record) = record {
@@ -103,4 +118,24 @@ pub async fn is_ip_banned(
     } else {
         false
     }
+}
+
+#[derive(Deserialize, Debug)]
+pub struct Realm {
+    pub name: String,
+    pub n_characters: u8,
+}
+
+pub async fn get_account_realms(
+    pool: &Pool<MySql>,
+    account_id: u32,
+) -> Result<Vec<Realm>, AuthenticationError> {
+    let records = sqlx::query!("SELECT r.id, r.name, rc.numchars FROM realmlist r JOIN realmcharacters rc ON rc.realmid = r.id AND acctid = ?;", account_id).fetch_all(pool).await?;
+    Ok(records
+        .into_iter()
+        .map(|r| Realm {
+            name: r.name,
+            n_characters: r.numchars,
+        })
+        .collect())
 }

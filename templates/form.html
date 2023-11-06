@@ -8,18 +8,18 @@ function onSubmit(token) {
 
 {% block content %}
     <div class="centered">
-        <div class="bordered-box form-wrapper login-registration">
+        <div class="tooltip-border form-wrapper login-registration">
             <h2>
                 {% block title %}{% endblock %}
             </h2>
             <form action="/{% block endpoint %}{% endblock %}" id="{% block endpoint %}{% endblock %}-form" method="POST" class="form">
-                <div>
+                <div class="input-wrapper">
                     <label for="username">Account Name</label> 
-                    <input class="input" type="text" name="username" id="username" required>
+                    <input class="bordered-box input" type="text" name="username" id="username" required>
                 </div>
-                <div>
+                <div class="input-wrapper">
                     <label for="password">Account Password</label> 
-                    <input class="input" type="password" name="password" id="password" required>
+                    <input class="bordered-box input" type="password" name="password" id="password" required>
                 </div>
                 <div>
                     <button class="g-recaptcha submit" 

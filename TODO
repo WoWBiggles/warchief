@@ -10,8 +10,9 @@ Web interface to interact with vMangos accounts:
 
 	- Login and manage accounts / view characters:
 		x Take into account banned accounts table
-		- Change password
-		- View current list of characters
+		x Change password
+		- View realm list
+		- View characters on realms (optional if mangos db connection provided)
 
 	- GM:
 		- View characters by name and linked accounts (optional if mangos db connection provided)

@@ -22,7 +22,7 @@ use tower_sessions::{cookie::time::Duration, Expiry, MemoryStore, Session, Sessi
 
 use crate::{
     config::init_config,
-    geolocate::load_mmdb_data,
+    geolocate::load_mmdb_data, routes::account::account_management,
 };
 
 mod config;
@@ -87,7 +87,7 @@ async fn main() {
         .layer(
             SessionManagerLayer::new(session_store)
                 .with_secure(false)
-                .with_expiry(Expiry::OnInactivity(Duration::minutes(1))),
+                .with_expiry(Expiry::OnInactivity(Duration::minutes(15))),
         );
 
     tracing::info!("Loaded MMDB ({}b)", mmdb_data.len());
@@ -99,7 +99,9 @@ async fn main() {
     });
 
     let app = Router::new()
-        .route("/account_management", get(account_management))
+        .route("/account_management", get(routes::account::account_management))
+        .route("/change_password", get(routes::forms::change_password_form))
+        .route("/change_password", post(routes::forms::change_password))
         .layer(middleware::from_fn(auth_middleware))
         .route("/", get(|| async { Redirect::permanent("/login") }))
         .route("/error/:error_code", get(error))
@@ -123,8 +125,4 @@ async fn error(Path(error_code): Path<errors::ErrorCode>) -> impl IntoResponse {
     ErrorTemplate {
         message: error_code.to_string(),
     }
-}
-
-async fn account_management() -> impl IntoResponse {
-    AccountManagementTemplate::default()
 }

@@ -1,5 +1,7 @@
 use askama::Template;
 
+use crate::db;
+
 #[derive(Template, Default)]
 #[template(path = "error.html")]
 pub struct ErrorTemplate {
@@ -39,4 +41,21 @@ impl RegisterTemplate {
 #[derive(Template, Default)]
 #[template(path = "account.html")]
 pub struct AccountManagementTemplate {
+    pub account_id: u32,
+}
+
+#[derive(Template, Default)]
+#[template(path = "change_password.html")]
+pub struct ChangePasswordForm {
+    pub success: Option<bool>,
+    pub error: Option<String>,
+}
+
+impl ChangePasswordForm {
+    pub fn error(message: impl Into<String>) -> Self {
+        Self {
+            success: Some(false),
+            error: Some(message.into()),
+        }
+    }
 }

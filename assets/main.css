@@ -65,17 +65,26 @@ body {
     border-radius: 8px;
 }
 
+.tooltip-border {
+    background-color: #262523;
+
+    border: 6px solid white;
+    border-image-source: url(/tooltip_border.png);
+    border-image-slice: 8 8;
+    border-image-repeat: round;
+    border-radius: 8px;
+}
+
 .form-wrapper {
     z-index: 3;
     text-align: center;
 }
 
-.form-wrapper .login-registration {
-    width: 16em;
+.form-wrapper.login-registration {
 }
 
-.form-wrapper .account-management {
-    width: 40em;
+.form-wrapper.account-management {
+    width: 30em;
 }
 
 .form {
@@ -88,6 +97,12 @@ body {
     padding: 1em 2em 0.5em 2em;
 }
 
+.input-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
 label, h1, h2, h3, h4, h5 {
     display: block;
 
@@ -95,7 +110,8 @@ label, h1, h2, h3, h4, h5 {
     text-shadow: 1px -1px #000000;
     color: #F2D4AE;
 
-    margin: 0;
+    margin-top: 4px;
+    margin-bottom: 0;
 }
 
 label {
@@ -105,12 +121,6 @@ label {
 input {
     font-family: "Arial Narrow";
     font-size: 14px;
-
-    border: 8px solid white;
-    border-image-source: url(/border.png);
-    border-image-slice: 8 8;
-    border-image-repeat: round;
-    border-radius: 8px;
 
     width: 11em;
 
@@ -122,8 +132,10 @@ button {
     font-family: "Friz Quadrata";
     font-size: 16px;
     padding: 0.25em 0.75em;
+
     border: 3px solid black;
     border-radius: 5px;
+
     background: url(/button_background.jpg), rgba(0, 0, 0, 0.169);
     background-repeat: repeat;
     background-blend-mode: multiply;
