@@ -1,3 +1,5 @@
+use std::net::IpAddr;
+
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Pool};
 
@@ -72,7 +74,7 @@ pub async fn get_account(
     pool: &Pool<MySql>,
     username: &String,
 ) -> Result<Account, AuthenticationError> {
-    match sqlx::query!("SELECT a.id, a.username, a.gmlevel, a.v, a.s, ab.banid as `ban_id?` FROM account a LEFT JOIN account_banned ab ON ab.id = a.id WHERE username = ?", username)
+    match sqlx::query!("SELECT a.id, a.username, a.gmlevel, a.v, a.s, ab.banid as `ban_id?` FROM account a LEFT JOIN account_banned ab ON ab.id = a.id AND ab.unbandate > UNIX_TIMESTAMP(NOW()) WHERE username = ?", username)
             .fetch_one(pool)
             .await
     {
@@ -87,5 +89,18 @@ pub async fn get_account(
             })
         },
         Err(e) => Err(AuthenticationError::DatabaseError(e)),
+    }
+}
+
+pub async fn is_ip_banned(
+    pool: &Pool<MySql>,
+    ip: IpAddr,
+) -> bool {
+    let record = sqlx::query!("SELECT ip as `ip?` FROM ip_banned WHERE unbandate IS null OR unbandate > UNIX_TIMESTAMP(NOW()) AND ip = ?", ip.to_string()).fetch_one(pool).await;
+    tracing::info!("{:?} {:?}", record, ip.to_string());
+    if let Ok(record) = record {
+        record.ip.is_some()
+    } else {
+        false
     }
 }

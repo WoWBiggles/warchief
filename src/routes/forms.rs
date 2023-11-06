@@ -116,6 +116,13 @@ pub async fn register(
 
     tracing::info!("Recaptcha passed by {}", addr.ip());
 
+    if db::is_ip_banned(&state.pool, addr.ip()).await {
+        return templates::RegisterTemplate {
+            success: Some(false),
+            error: Some(format!("Your IP is banned from creating an account on this server."))
+        };
+    }
+
     match geolocate::check_ip(&state.config, &state.mmdb_data, addr.ip()) {
         Ok(allowed) => {
             if !allowed {

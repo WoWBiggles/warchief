@@ -3,13 +3,13 @@ Web interface to interact with vMangos accounts:
 	- Create new accounts:
 		- Email verification (optional)
 		x IP checks (optional, GeoIP or IP blacklisting)
-		- Take into account banned ips table
+		x Take into account banned ips table
 		- Password requirements (optional)
 		x ReCaptcha (optional)
 		- Logs of failed attempts
 
 	- Login and manage accounts / view characters:
-		- Take into account banned accounts table
+		x Take into account banned accounts table
 		- Change password
 		- View current list of characters
 
