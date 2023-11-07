@@ -6,7 +6,7 @@ use crate::{db, state, consts, templates};
 
 pub async fn account_management(
     session: Session,
-    State(state): State<state::AppState>,
+    State(_state): State<state::AppState>,
 ) -> impl IntoResponse {
     let account = session
         .get::<db::Account>(consts::SESSION_ACCOUNT_DETAILS)

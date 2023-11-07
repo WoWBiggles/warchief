@@ -12,15 +12,15 @@ use axum::{
 use db::Account;
 use http::StatusCode;
 
-use mail_send::{SmtpClient, SmtpClientBuilder};
-use sqlx::{mysql::MySqlPoolOptions, MySql, Pool};
+
+
 use tower::ServiceBuilder;
-use std::{net::SocketAddr, sync::Arc};
+use std::net::SocketAddr;
 use templates::ErrorTemplate;
 use tower_http::services::ServeDir;
 use tower_sessions::{cookie::time::Duration, Expiry, MemoryStore, Session, SessionManagerLayer};
 
-use crate::{config::init_config, geolocate::load_mmdb_data};
+
 
 mod config;
 mod consts;

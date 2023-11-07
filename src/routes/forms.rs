@@ -2,7 +2,7 @@ use std::net::SocketAddr;
 
 use askama_axum::IntoResponse;
 use axum::{
-    extract::{ConnectInfo, Path, State},
+    extract::{ConnectInfo, State},
     response::Redirect,
     Form,
 };

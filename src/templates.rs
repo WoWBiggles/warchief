@@ -1,6 +1,6 @@
 use askama::Template;
 
-use crate::db;
+
 
 #[derive(Template, Default)]
 #[template(path = "error.html")]
