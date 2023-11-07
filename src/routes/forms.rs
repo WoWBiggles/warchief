@@ -1,4 +1,4 @@
-use std::{net::SocketAddr, sync::Arc};
+use std::net::SocketAddr;
 
 use askama_axum::IntoResponse;
 use axum::{
@@ -6,10 +6,11 @@ use axum::{
     response::Redirect,
     Form,
 };
+use mail_send::mail_builder::MessageBuilder;
 use serde::Deserialize;
 use tower_sessions::Session;
 
-use crate::{consts, crypto, db, errors, geolocate, recaptcha, templates, AppState};
+use crate::{consts, crypto, db, errors, geolocate, recaptcha, templates, state};
 
 pub async fn login_form() -> impl IntoResponse {
     templates::LoginTemplate::default()
@@ -26,7 +27,7 @@ pub struct UserForm {
 pub async fn login(
     session: Session,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
-    State(state): State<Arc<AppState>>,
+    State(state): State<state::AppState>,
     Form(form): Form<UserForm>,
 ) -> impl IntoResponse {
     tracing::info!("Login attempt from {}", addr.ip());
@@ -101,7 +102,7 @@ pub async fn register_form() -> impl IntoResponse {
 
 pub async fn register(
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
-    State(state): State<Arc<AppState>>,
+    State(state): State<state::AppState>,
     Form(form): Form<UserForm>,
 ) -> impl IntoResponse {
     tracing::info!("Registration attempt from {}", addr.ip());
@@ -149,6 +150,15 @@ pub async fn register(
         match db::add_account(&state.pool, username, verifier, salt).await {
             Ok(()) => {
                 tracing::info!("Successful registation from {}", addr.ip());
+                let message = MessageBuilder::new()
+                    .from(("Biggles", "wowbiggles@proton.me"))
+                    .to(vec![
+                        ("Jane Doe", "silep39743@newnime.com"),
+                    ])
+                    .subject("Hi!")
+                    .html_body("<h1>Hello, world!</h1>")
+                    .text_body("Hello world!");
+                state.smtp.lock().await.send(message).await.expect("Email should send properly.");
                 templates::RegisterTemplate {
                     success: Some(true),
                     error: None,
@@ -192,7 +202,7 @@ pub struct ChangePasswordForm {
 
 pub async fn change_password(
     session: Session,
-    State(state): State<Arc<AppState>>,
+    State(state): State<state::AppState>,
     Form(form): Form<ChangePasswordForm>,
 ) -> impl IntoResponse {
     let account = session

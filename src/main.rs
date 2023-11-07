@@ -1,29 +1,26 @@
-use ::config::Config;
 use askama_axum::IntoResponse;
 use axum::{
     error_handling::HandleErrorLayer,
+    extract::Path,
     http::Request,
     middleware::{self, Next},
     response::{Redirect, Response},
     routing::{get, get_service, post},
-    BoxError, Router, extract::Path,
+    BoxError, Router,
 };
 
 use db::Account;
 use http::StatusCode;
 
-
+use mail_send::{SmtpClient, SmtpClientBuilder};
 use sqlx::{mysql::MySqlPoolOptions, MySql, Pool};
-use std::{net::SocketAddr, sync::Arc};
-use templates::{AccountManagementTemplate, ErrorTemplate};
 use tower::ServiceBuilder;
+use std::{net::SocketAddr, sync::Arc};
+use templates::ErrorTemplate;
 use tower_http::services::ServeDir;
 use tower_sessions::{cookie::time::Duration, Expiry, MemoryStore, Session, SessionManagerLayer};
 
-use crate::{
-    config::init_config,
-    geolocate::load_mmdb_data, routes::account::account_management,
-};
+use crate::{config::init_config, geolocate::load_mmdb_data};
 
 mod config;
 mod consts;
@@ -33,14 +30,8 @@ mod errors;
 mod geolocate;
 mod recaptcha;
 mod routes;
+mod state;
 mod templates;
-
-#[derive(Clone)]
-struct AppState {
-    pool: Pool<MySql>,
-    mmdb_data: Vec<u8>,
-    config: Config,
-}
 
 async fn auth_middleware<B>(session: Session, request: Request<B>, next: Next<B>) -> Response {
     let account = session
@@ -66,18 +57,7 @@ async fn auth_middleware<B>(session: Session, request: Request<B>, next: Next<B>
 async fn main() {
     tracing_subscriber::fmt::init();
 
-    let config = init_config();
-
-    let db_url = config
-        .get_string(config::DB_URL)
-        .expect("Database configuration should have a connection string.");
-    let pool = MySqlPoolOptions::new()
-        .max_connections(10)
-        .connect(&db_url)
-        .await
-        .expect("Connecting to MySql DB");
-
-    let mmdb_data = load_mmdb_data().expect("Loading MMDB data");
+    let shared_state = state::init_state().await;
 
     let session_store = MemoryStore::default();
     let session_service = ServiceBuilder::new()
@@ -90,16 +70,11 @@ async fn main() {
                 .with_expiry(Expiry::OnInactivity(Duration::minutes(15))),
         );
 
-    tracing::info!("Loaded MMDB ({}b)", mmdb_data.len());
-
-    let shared_state = Arc::new(AppState {
-        pool,
-        mmdb_data,
-        config,
-    });
-
     let app = Router::new()
-        .route("/account_management", get(routes::account::account_management))
+        .route(
+            "/account_management",
+            get(routes::account::account_management),
+        )
         .route("/change_password", get(routes::forms::change_password_form))
         .route("/change_password", post(routes::forms::change_password))
         .layer(middleware::from_fn(auth_middleware))

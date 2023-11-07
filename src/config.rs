@@ -1,6 +1,11 @@
-use config::{Config, File, FileFormat};
+use config::{Config, File, FileFormat, ConfigError};
 
 pub const DB_URL: &str = "db.url";
+
+pub const SMTP_HOST: &str = "smtp.host";
+pub const SMTP_PORT: &str = "smtp.port";
+pub const SMTP_USERNAME: &str = "smtp.username";
+pub const SMTP_PASSWORD: &str = "smtp.password";
 
 pub const RECAPTCHA_SECRET: &str = "recaptcha.secret";
 
@@ -15,4 +20,17 @@ pub fn init_config() -> Config {
         .add_source(File::new("config.toml", FileFormat::Toml))
         .build()
         .expect("Config to build correctly.")
+}
+
+pub fn get_smtp_config(config: &Config) -> Result<(String, u16, String, String), ConfigError> {
+    let smtp_host = config
+        .get_string(SMTP_HOST)?;
+    let smtp_port = config
+        .get_int(SMTP_PORT)?;
+    let smtp_username = config
+        .get_string(SMTP_USERNAME)?;
+    let smtp_password = config
+        .get_string(SMTP_PASSWORD)?;
+
+    Ok((smtp_host, smtp_port.try_into().expect("SMTP port should be a valid port."), smtp_username, smtp_password))
 }
