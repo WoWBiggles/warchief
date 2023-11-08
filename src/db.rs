@@ -24,6 +24,7 @@ impl From<u8> for GmLevel {
 pub struct Account {
     pub id: u32,
     pub username: String,
+    pub email_verified: bool,
     pub gmlevel: GmLevel,
     pub v: String,
     pub s: String,
@@ -103,7 +104,7 @@ pub async fn get_account(
     pool: &Pool<MySql>,
     username: &str,
 ) -> Result<Account, AuthenticationError> {
-    match sqlx::query!("SELECT a.id, a.username, a.gmlevel, a.v, a.s, ab.banid as `ban_id?` FROM account a LEFT JOIN account_banned ab ON ab.id = a.id AND ab.unbandate > UNIX_TIMESTAMP(NOW()) WHERE username = ?", username)
+    match sqlx::query!("SELECT a.id, a.username, a.gmlevel, a.v, a.s, a.email_verif, ab.banid as `ban_id?` FROM account a LEFT JOIN account_banned ab ON ab.id = a.id AND ab.unbandate > UNIX_TIMESTAMP(NOW()) WHERE username = ?", username)
             .fetch_one(pool)
             .await
     {
@@ -111,6 +112,7 @@ pub async fn get_account(
             Ok(Account {
                 id: account.id,
                 username: account.username,
+                email_verified: account.email_verif == 1,
                 gmlevel: account.gmlevel.into(),
                 v: account.v.ok_or(AuthenticationError::MissingSrpValues(String::from("v")))?,
                 s: account.s.ok_or(AuthenticationError::MissingSrpValues(String::from("s")))?,

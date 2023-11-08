@@ -67,9 +67,17 @@ pub async fn login(
                 "Could not find an account for that username {:?}",
                 e
             ))
-            .into_response()
+                .into_response()
         }
     };
+
+    let email_verification_enabled = state
+        .config
+        .get_bool(config::EMAIL_VERIFICATION_ENABLED)
+        .unwrap_or(false);
+    if email_verification_enabled && !account.email_verified {
+        return templates::LoginTemplate::error("The email on this account has not been verified.").into_response();
+    }
 
     if let Err(e) = session.insert(consts::SESSION_ACCOUNT_DETAILS, account) {
         return templates::LoginTemplate::error(format!("Failed to save session: {:?}", e))

@@ -1,7 +1,7 @@
 Web interface to interact with vMangos accounts:
 
 	- Create new accounts:
-		- Email verification (optional)
+		x Email verification (optional)
 		x IP checks (optional, GeoIP or IP blacklisting)
 		x Take into account banned ips table
 		- Password requirements (optional)
@@ -20,3 +20,8 @@ Web interface to interact with vMangos accounts:
 		- See user stats split by country
 		- View flagged accounts (logins with multiple IPs from multiple countries?)
 		- View/modify IP ban lists
+
+	- Improvements:
+		- Cleanup UI/CSS (replace with maud, maybe add tailwind)
+		- Add config options for everything
+		- Cleanup verification tokens over time (crate for that?)
