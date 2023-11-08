@@ -1,4 +1,4 @@
-use std::net::SocketAddr;
+use std::{net::SocketAddr, time::Duration};
 
 use askama_axum::IntoResponse;
 use axum::{
@@ -178,12 +178,17 @@ pub async fn register(
     }
 
     if email_verification_enabled {
+        let email_verification_timeout: u64 = state
+            .config
+            .get_int(config::EMAIL_VERIFICATION_TOKEN_TIMEOUT_M)
+            .expect("Email verification token timeout must be defined.")
+            .try_into().expect("Email verification token must be a u64.");
         let token = Uuid::new_v4().to_string();
         state
             .verification_tokens
             .write()
             .await
-            .insert(token.clone(), form.username.clone());
+            .insert(token.clone(), form.username.clone(), Duration::from_secs(60 * email_verification_timeout));
 
         if let Err(e) = email::send_verification_email(&state.config, token, form).await {
             return templates::RegisterTemplate::error(
@@ -214,7 +219,7 @@ pub async fn verify(
             Err(e) => templates::VerifyTemplate::error(e.to_string()),
         }
     } else {
-        templates::VerifyTemplate::error("Invalid verify token")
+        templates::VerifyTemplate::error("Invalid verify token. It may have timed out, please re-request a verification token.")
     }
 }
 

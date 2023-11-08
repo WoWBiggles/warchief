@@ -5,6 +5,7 @@ use mail_send::{SmtpClient, SmtpClientBuilder};
 use sqlx::{Pool, MySql, mysql::MySqlPoolOptions};
 use tokio::{net::TcpStream, sync::{Mutex, RwLock}};
 use tokio_rustls::client::TlsStream;
+use ttl_cache::TtlCache;
 
 use crate::{config, geolocate};
 
@@ -13,7 +14,7 @@ pub struct AppState {
     pub pool: Pool<MySql>,
     pub mmdb_data: Arc<Vec<u8>>,
     pub config: Config,
-    pub verification_tokens: Arc<RwLock<HashMap<String, String>>>,
+    pub verification_tokens: Arc<RwLock<TtlCache<String, String>>>,
 }
 
 pub async fn init_state() -> AppState {
@@ -32,7 +33,7 @@ pub async fn init_state() -> AppState {
 
     tracing::info!("Loaded MMDB ({}b)", mmdb_data.len());
 
-    let verification_tokens = Arc::new(RwLock::new(HashMap::new()));
+    let verification_tokens = Arc::new(RwLock::new(TtlCache::new(6000)));
 
     AppState {
         pool,
