@@ -1,4 +1,4 @@
-use config::{Config, File, FileFormat, ConfigError};
+use config::{Config, ConfigError, File, FileFormat};
 
 pub const SERVER_NAME: &str = "server_name";
 pub const DOMAIN: &str = "domain";
@@ -29,14 +29,17 @@ pub fn init_config() -> Config {
 }
 
 pub fn get_smtp_config(config: &Config) -> Result<(String, u16, String, String), ConfigError> {
-    let smtp_host = config
-        .get_string(SMTP_HOST)?;
-    let smtp_port = config
-        .get_int(SMTP_PORT)?;
-    let smtp_username = config
-        .get_string(SMTP_USERNAME)?;
-    let smtp_password = config
-        .get_string(SMTP_PASSWORD)?;
+    let smtp_host = config.get_string(SMTP_HOST)?;
+    let smtp_port = config.get_int(SMTP_PORT)?;
+    let smtp_username = config.get_string(SMTP_USERNAME)?;
+    let smtp_password = config.get_string(SMTP_PASSWORD)?;
 
-    Ok((smtp_host, smtp_port.try_into().expect("SMTP port should be a valid port."), smtp_username, smtp_password))
+    Ok((
+        smtp_host,
+        smtp_port
+            .try_into()
+            .expect("SMTP port should be a valid port."),
+        smtp_username,
+        smtp_password,
+    ))
 }

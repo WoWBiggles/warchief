@@ -19,8 +19,11 @@ pub fn generate_srp_values(
         BigInt::from_bytes_le(Sign::Plus, &v.password_verifier().to_owned()).to_bytes_be();
     let (_, salt_be) = BigInt::from_bytes_le(Sign::Plus, &v.salt().to_owned()).to_bytes_be();
 
-
-    Ok((v.username().to_owned(), hex::encode_upper(verifier_be), hex::encode_upper(salt_be)))
+    Ok((
+        v.username().to_owned(),
+        hex::encode_upper(verifier_be),
+        hex::encode_upper(salt_be),
+    ))
 }
 
 pub fn verify_password(
@@ -34,8 +37,8 @@ pub fn verify_password(
 
     let verifier = hex::decode(password_verifier)
         .map_err(|_| AuthenticationError::InvalidSrpValues(String::from("v")))?;
-    let salt = hex::decode(salt)
-        .map_err(|_| AuthenticationError::InvalidSrpValues(String::from("s")))?;
+    let salt =
+        hex::decode(salt).map_err(|_| AuthenticationError::InvalidSrpValues(String::from("s")))?;
 
     let (_, verifier_le) = BigInt::from_bytes_be(Sign::Plus, &verifier).to_bytes_le();
     let (_, salt_le) = BigInt::from_bytes_be(Sign::Plus, &salt).to_bytes_le();
@@ -89,7 +92,12 @@ mod tests {
         let (username, password_verifier, salt) =
             generate_srp_values(&String::from("test"), &String::from("correct")).unwrap();
 
-        let result = verify_password(&username, &String::from("incorrect"), &password_verifier, &salt);
+        let result = verify_password(
+            &username,
+            &String::from("incorrect"),
+            &password_verifier,
+            &salt,
+        );
         if let Err(AuthenticationError::IncorrectPassword(_)) = result {
         } else {
             panic!("Expected an IncorrectPassword error {:?}", result);

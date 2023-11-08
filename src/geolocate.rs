@@ -4,7 +4,7 @@ use std::{io, net::IpAddr};
 
 use crate::config;
 use ::config::Config;
-use geoip2::{Country, Error, Reader, models};
+use geoip2::{models, Country, Error, Reader};
 
 #[derive(PartialEq, Eq, Debug)]
 pub struct IpLocation {
@@ -37,12 +37,10 @@ fn geolocate_ip_country(mmdb_buffer: &Vec<u8>, ip: IpAddr) -> Result<IpLocation,
 }
 
 pub fn check_ip(config: &Config, mmdb_buffer: &Vec<u8>, ip: IpAddr) -> Result<bool, Error> {
-    let geoip_enabled = config
-        .get_bool(config::GEOIP_ENABLED)
-        .unwrap_or(false);
+    let geoip_enabled = config.get_bool(config::GEOIP_ENABLED).unwrap_or(false);
 
     if !geoip_enabled || ip.is_loopback() {
-        return Ok(true)
+        return Ok(true);
     }
 
     let location = geolocate_ip_country(mmdb_buffer, ip)?;

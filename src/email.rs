@@ -1,10 +1,6 @@
-use std::sync::Arc;
-
 use ::config::Config;
+use mail_send::mail_builder::MessageBuilder;
 use mail_send::SmtpClientBuilder;
-use mail_send::{mail_builder::MessageBuilder, SmtpClient};
-use tokio::{net::TcpStream, sync::Mutex};
-use tokio_rustls::client::TlsStream;
 
 use crate::config;
 use crate::routes::forms::UserForm;

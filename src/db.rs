@@ -71,14 +71,13 @@ pub async fn add_account(
     Ok(())
 }
 
-pub async fn verify_account(
-    pool: &Pool<MySql>,
-    username: &str,
-) -> Result<(), sqlx::Error> {
+pub async fn verify_account(pool: &Pool<MySql>, username: &str) -> Result<(), sqlx::Error> {
     sqlx::query!(
         "UPDATE account SET email_verif = 1 WHERE username = ?",
         username
-    ).execute(pool).await?;
+    )
+    .execute(pool)
+    .await?;
     Ok(())
 }
 

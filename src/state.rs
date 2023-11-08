@@ -1,10 +1,10 @@
-use std::{sync::Arc, collections::HashMap};
+use std::sync::Arc;
 
 use ::config::Config;
-use mail_send::{SmtpClient, SmtpClientBuilder};
-use sqlx::{Pool, MySql, mysql::MySqlPoolOptions};
-use tokio::{net::TcpStream, sync::{Mutex, RwLock}};
-use tokio_rustls::client::TlsStream;
+
+use sqlx::{mysql::MySqlPoolOptions, MySql, Pool};
+
+use tokio::sync::RwLock;
 use ttl_cache::TtlCache;
 
 use crate::{config, geolocate};

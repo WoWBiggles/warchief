@@ -1,7 +1,5 @@
 use askama::Template;
 
-use crate::db;
-
 #[derive(Template, Default)]
 #[template(path = "error.html")]
 pub struct ErrorTemplate {
@@ -17,7 +15,7 @@ pub struct LoginTemplate {
 impl LoginTemplate {
     pub fn error(error: impl Into<String>) -> Self {
         Self {
-            error: Some(error.into())
+            error: Some(error.into()),
         }
     }
 }

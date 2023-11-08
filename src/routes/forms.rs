@@ -67,7 +67,7 @@ pub async fn login(
                 "Could not find an account for that username {:?}",
                 e
             ))
-                .into_response()
+            .into_response()
         }
     };
 
@@ -76,7 +76,8 @@ pub async fn login(
         .get_bool(config::EMAIL_VERIFICATION_ENABLED)
         .unwrap_or(false);
     if email_verification_enabled && !account.email_verified {
-        return templates::LoginTemplate::error("The email on this account has not been verified.").into_response();
+        return templates::LoginTemplate::error("The email on this account has not been verified.")
+            .into_response();
     }
 
     if let Err(e) = session.insert(consts::SESSION_ACCOUNT_DETAILS, account) {
@@ -182,13 +183,14 @@ pub async fn register(
             .config
             .get_int(config::EMAIL_VERIFICATION_TOKEN_TIMEOUT_M)
             .expect("Email verification token timeout must be defined.")
-            .try_into().expect("Email verification token must be a u64.");
+            .try_into()
+            .expect("Email verification token must be a u64.");
         let token = Uuid::new_v4().to_string();
-        state
-            .verification_tokens
-            .write()
-            .await
-            .insert(token.clone(), form.username.clone(), Duration::from_secs(60 * email_verification_timeout));
+        state.verification_tokens.write().await.insert(
+            token.clone(),
+            form.username.clone(),
+            Duration::from_secs(60 * email_verification_timeout),
+        );
 
         if let Err(e) = email::send_verification_email(&state.config, token, form).await {
             return templates::RegisterTemplate::error(
@@ -219,7 +221,9 @@ pub async fn verify(
             Err(e) => templates::VerifyTemplate::error(e.to_string()),
         }
     } else {
-        templates::VerifyTemplate::error("Invalid verify token. It may have timed out, please re-request a verification token.")
+        templates::VerifyTemplate::error(
+            "Invalid verify token. It may have timed out, please re-request a verification token.",
+        )
     }
 }
 

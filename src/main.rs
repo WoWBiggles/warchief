@@ -12,22 +12,18 @@ use axum::{
 use db::Account;
 use http::StatusCode;
 
-
-
-use tower::ServiceBuilder;
 use std::net::SocketAddr;
 use templates::ErrorTemplate;
+use tower::ServiceBuilder;
 use tower_http::services::ServeDir;
 use tower_sessions::{cookie::time::Duration, Expiry, MemoryStore, Session, SessionManagerLayer};
-
-
 
 mod config;
 mod consts;
 mod crypto;
 mod db;
-mod errors;
 mod email;
+mod errors;
 mod geolocate;
 mod recaptcha;
 mod routes;
