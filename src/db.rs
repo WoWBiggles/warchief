@@ -124,9 +124,8 @@ pub async fn get_account(
 }
 
 pub async fn is_ip_banned(pool: &Pool<MySql>, ip: IpAddr) -> bool {
-    let record = sqlx::query!("SELECT ip as `ip?` FROM ip_banned WHERE unbandate IS null OR unbandate > UNIX_TIMESTAMP(NOW()) AND ip = ?", ip.to_string()).fetch_one(pool).await;
-    tracing::info!("{:?} {:?}", record, ip.to_string());
-    if let Ok(record) = record {
+    let record = sqlx::query!("SELECT ip as `ip?` FROM ip_banned WHERE unbandate IS null OR unbandate > UNIX_TIMESTAMP(NOW()) AND ip = ?", ip.to_string()).fetch_optional(pool).await.unwrap_or_default();
+    if let Some(record) = record {
         record.ip.is_some()
     } else {
         false
