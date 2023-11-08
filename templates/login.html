@@ -3,6 +3,27 @@
 {% block title %}Login{% endblock %}
 {% block endpoint %}login{% endblock %}
 
+{% block form %}
+    <form action="/login" id="login-form" method="POST" class="form">
+        <div class="input-wrapper">
+            <label for="username">Account Name</label> 
+            <input class="bordered-box input" type="text" name="username" id="username" required>
+        </div>
+        <div class="input-wrapper">
+            <label for="password">Account Password</label> 
+            <input class="bordered-box input" type="password" name="password" id="password" required>
+        </div>
+        <div>
+            <button class="g-recaptcha submit" 
+            data-sitekey="6Ld5fe0oAAAAAO9_T7rPsQjYBCeaekLWCiiM6pwg" 
+            data-callback='onSubmit' 
+            data-action='submit'>
+                Login
+            </button>
+        </div>
+    </form>
+{% endblock %}
+
 {% block response %}
     {% if error.is_some() %}
         <div class="error">{{ error.as_ref().unwrap() }}</div>

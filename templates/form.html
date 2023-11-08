@@ -12,24 +12,8 @@ function onSubmit(token) {
             <h2>
                 {% block title %}{% endblock %}
             </h2>
-            <form action="/{% block endpoint %}{% endblock %}" id="{% block endpoint %}{% endblock %}-form" method="POST" class="form">
-                <div class="input-wrapper">
-                    <label for="username">Account Name</label> 
-                    <input class="bordered-box input" type="text" name="username" id="username" required>
-                </div>
-                <div class="input-wrapper">
-                    <label for="password">Account Password</label> 
-                    <input class="bordered-box input" type="password" name="password" id="password" required>
-                </div>
-                <div>
-                    <button class="g-recaptcha submit" 
-                    data-sitekey="6Ld5fe0oAAAAAO9_T7rPsQjYBCeaekLWCiiM6pwg" 
-                    data-callback='onSubmit' 
-                    data-action='submit'>
-                        {% block title %}{% endblock %}
-                    </button>
-                </div>
-            </form>
+            {% block form %}
+            {% endblock %}
             {% block response %}
             {% endblock %}
         </div>

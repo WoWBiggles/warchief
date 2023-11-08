@@ -3,10 +3,41 @@
 {% block title %}Register{% endblock %}
 {% block endpoint %}register{% endblock %}
 
+{% block form %}
+    <form action="/register" id="register-form" method="POST" class="form">
+        {% if email_required %}
+        <div class="input-wrapper">
+            <label for="email">Account Email</label> 
+            <input class="bordered-box input" type="email" name="email" id="email" required>
+        </div>
+        {% endif %}
+        <div class="input-wrapper">
+            <label for="username">Account Name</label> 
+            <input class="bordered-box input" type="text" name="username" id="username" required>
+        </div>
+        <div class="input-wrapper">
+            <label for="password">Account Password</label> 
+            <input class="bordered-box input" type="password" name="password" id="password" required>
+        </div>
+        <div>
+            <button class="g-recaptcha submit" 
+            data-sitekey="6Ld5fe0oAAAAAO9_T7rPsQjYBCeaekLWCiiM6pwg" 
+            data-callback='onSubmit' 
+            data-action='submit'>
+                Register
+            </button>
+        </div>
+    </form>
+{% endblock %}
+
 {% block response %}
     {% match success %}
         {% when Some with (true) %}
+            {% if email_required %}
+            <div class="success">Your account has been created! Please verify your email before logging in.</div>
+            {% else %}
             <div class="success">Your account has been created!</div>
+            {% endif %}
         {% when Some with (false) %}
             <div class="error">{{ error.as_ref().unwrap() }}</div>
         {% when None %}

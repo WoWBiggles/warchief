@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="centered">
+        <div class="tooltip-border form-wrapper">
+            {% match success %}
+                {% when Some with (true) %}
+                    <div class="success">Your account has been created, {{ username.as_ref().unwrap() }}!</div>
+                {% when Some with (false) %}
+                    <div class="error">{{ error.as_ref().unwrap() }}</div>
+                {% when None %}
+            {% endmatch %}
+        </div>
+    </div>
+{% endblock %}

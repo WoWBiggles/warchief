@@ -18,8 +18,6 @@ pub enum AuthenticationError {
     ExistingUser,
     #[error("database error")]
     DatabaseError(#[from] sqlx::Error),
-    #[error("invalid gm level: {0}")]
-    InvalidGmLevel(u8),
     #[error("missing srp value from db: {0}")]
     MissingSrpValues(String),
     #[error("invalid srp value from db: {0}")]

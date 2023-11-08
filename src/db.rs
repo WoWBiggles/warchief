@@ -32,9 +32,9 @@ pub struct Account {
 
 pub async fn add_account(
     pool: &Pool<MySql>,
-    username: String,
-    verifier_hex: String,
-    salt_hex: String,
+    username: &str,
+    verifier_hex: &str,
+    salt_hex: &str,
 ) -> Result<(), AuthenticationError> {
     // Check for existing account.
     if let Ok(existing_accounts) =
@@ -70,11 +70,22 @@ pub async fn add_account(
     Ok(())
 }
 
+pub async fn verify_account(
+    pool: &Pool<MySql>,
+    username: &str,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "UPDATE account SET email_verif = 1 WHERE username = ?",
+        username
+    ).execute(pool).await?;
+    Ok(())
+}
+
 pub async fn update_srp_values(
     pool: &Pool<MySql>,
-    username: String,
-    verifier_hex: String,
-    salt_hex: String,
+    username: &str,
+    verifier_hex: &str,
+    salt_hex: &str,
 ) -> Result<(), AuthenticationError> {
     sqlx::query!(
         "UPDATE account SET v = ?, s = ? WHERE username = ?",
@@ -90,7 +101,7 @@ pub async fn update_srp_values(
 
 pub async fn get_account(
     pool: &Pool<MySql>,
-    username: &String,
+    username: &str,
 ) -> Result<Account, AuthenticationError> {
     match sqlx::query!("SELECT a.id, a.username, a.gmlevel, a.v, a.s, ab.banid as `ban_id?` FROM account a LEFT JOIN account_banned ab ON ab.id = a.id AND ab.unbandate > UNIX_TIMESTAMP(NOW()) WHERE username = ?", username)
             .fetch_one(pool)

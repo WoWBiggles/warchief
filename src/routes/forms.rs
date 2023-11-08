@@ -2,15 +2,15 @@ use std::net::SocketAddr;
 
 use askama_axum::IntoResponse;
 use axum::{
-    extract::{ConnectInfo, State},
+    extract::{ConnectInfo, Path, State},
     response::Redirect,
     Form,
 };
-use mail_send::mail_builder::MessageBuilder;
 use serde::Deserialize;
 use tower_sessions::Session;
+use uuid::Uuid;
 
-use crate::{consts, crypto, db, errors, geolocate, recaptcha, templates, state};
+use crate::{config, consts, crypto, db, email, geolocate, recaptcha, state, templates};
 
 pub async fn login_form() -> impl IntoResponse {
     templates::LoginTemplate::default()
@@ -18,7 +18,8 @@ pub async fn login_form() -> impl IntoResponse {
 
 #[derive(Deserialize, Debug)]
 pub struct UserForm {
-    username: String,
+    pub email: Option<String>,
+    pub username: String,
     password: String,
     #[serde(rename = "g-recaptcha-response")]
     recaptcha: String,
@@ -32,7 +33,7 @@ pub async fn login(
 ) -> impl IntoResponse {
     tracing::info!("Login attempt from {}", addr.ip());
 
-    if let Err(e) = recaptcha::verify_recaptcha(&state.config, form.recaptcha).await {
+    if let Err(e) = recaptcha::verify_recaptcha(&state.config, &form.recaptcha).await {
         return templates::LoginTemplate::error(e.to_string()).into_response();
     }
 
@@ -58,25 +59,7 @@ pub async fn login(
         Ok(account) => {
             match crypto::verify_password(&form.username, &form.password, &account.v, &account.s) {
                 Ok(_) => account,
-                Err(e) => {
-                    return match e {
-                        errors::AuthenticationError::IncorrectPassword(_) => {
-                            templates::LoginTemplate::error("Incorrect password").into_response()
-                        }
-                        errors::AuthenticationError::DatabaseError(e) => {
-                            templates::LoginTemplate::error(format!("Unknown DB error: {}", e))
-                                .into_response()
-                        }
-                        errors::AuthenticationError::MissingSrpValues(_) => {
-                            templates::LoginTemplate::error("Missing DB data").into_response()
-                        }
-                        errors::AuthenticationError::InvalidSrpValues(_) => {
-                            templates::LoginTemplate::error("Dodgy DB data").into_response()
-                        }
-                        e => templates::LoginTemplate::error(format!("Unexpected error {}", e))
-                            .into_response(),
-                    }
-                }
+                Err(e) => return templates::LoginTemplate::error(e.to_string()).into_response(),
             }
         }
         Err(e) => {
@@ -96,8 +79,16 @@ pub async fn login(
     Redirect::to("/account_management").into_response()
 }
 
-pub async fn register_form() -> impl IntoResponse {
-    templates::RegisterTemplate::default()
+pub async fn register_form(State(state): State<state::AppState>) -> impl IntoResponse {
+    let email_verification_enabled = state
+        .config
+        .get_bool(config::EMAIL_VERIFICATION_ENABLED)
+        .unwrap_or(false);
+
+    templates::RegisterTemplate {
+        email_required: email_verification_enabled,
+        ..Default::default()
+    }
 }
 
 pub async fn register(
@@ -105,10 +96,24 @@ pub async fn register(
     State(state): State<state::AppState>,
     Form(form): Form<UserForm>,
 ) -> impl IntoResponse {
+    let email_verification_enabled = state
+        .config
+        .get_bool(config::EMAIL_VERIFICATION_ENABLED)
+        .unwrap_or(false);
+
+    if email_verification_enabled && form.email.as_ref().unwrap_or(&"".to_string()) == "" {
+        return templates::RegisterTemplate {
+            email_required: email_verification_enabled,
+            success: Some(false),
+            error: Some("Email is required for verification.".to_string()),
+        };
+    }
+
     tracing::info!("Registration attempt from {}", addr.ip());
 
-    if let Err(e) = recaptcha::verify_recaptcha(&state.config, form.recaptcha).await {
+    if let Err(e) = recaptcha::verify_recaptcha(&state.config, &form.recaptcha).await {
         return templates::RegisterTemplate {
+            email_required: email_verification_enabled,
             success: Some(false),
             error: Some(e.to_string()),
         };
@@ -118,6 +123,7 @@ pub async fn register(
 
     if db::is_ip_banned(&state.pool, addr.ip()).await {
         return templates::RegisterTemplate {
+            email_required: email_verification_enabled,
             success: Some(false),
             error: Some(format!(
                 "Your IP is banned from creating an account on this server."
@@ -129,6 +135,7 @@ pub async fn register(
         Ok(allowed) => {
             if !allowed {
                 return templates::RegisterTemplate {
+                    email_required: email_verification_enabled,
                     success: Some(false),
                     error: Some(format!("Your country or continent is banned from creating an account on this server."))
                 };
@@ -136,6 +143,7 @@ pub async fn register(
         }
         Err(e) => {
             return templates::RegisterTemplate {
+                email_required: email_verification_enabled,
                 success: Some(false),
                 error: Some(format!("Failed to geolocate your IP: {:?}", e)),
             }
@@ -144,51 +152,66 @@ pub async fn register(
 
     tracing::info!("GeoIp passed by {}", addr.ip());
 
-    if let Ok((username, verifier, salt)) =
-        crypto::generate_srp_values(&form.username, &form.password)
-    {
-        match db::add_account(&state.pool, username, verifier, salt).await {
-            Ok(()) => {
-                tracing::info!("Successful registation from {}", addr.ip());
-                let message = MessageBuilder::new()
-                    .from(("Biggles", "wowbiggles@proton.me"))
-                    .to(vec![
-                        ("Jane Doe", "silep39743@newnime.com"),
-                    ])
-                    .subject("Hi!")
-                    .html_body("<h1>Hello, world!</h1>")
-                    .text_body("Hello world!");
-                state.smtp.lock().await.send(message).await.expect("Email should send properly.");
-                templates::RegisterTemplate {
-                    success: Some(true),
-                    error: None,
-                }
+    match crypto::generate_srp_values(&form.username, &form.password) {
+        Ok((username, verifier, salt)) => {
+            if let Err(e) = db::add_account(&state.pool, &username, &verifier, &salt).await {
+                return templates::RegisterTemplate::error(
+                    email_verification_enabled,
+                    e.to_string(),
+                );
             }
-            Err(e) => match e {
-                errors::AuthenticationError::ExistingUser => templates::RegisterTemplate {
-                    success: Some(false),
-                    error: Some(String::from("Existing user found with that username")),
-                },
-                errors::AuthenticationError::DatabaseError(e) => templates::RegisterTemplate {
-                    success: Some(false),
-                    error: Some(format!("DB error: {}", e)),
-                },
-                _ => templates::RegisterTemplate {
-                    success: Some(false),
-                    error: Some(format!("Unknown DB error {}", e)),
-                },
+        }
+        Err(e) => {
+            return templates::RegisterTemplate::error(
+                email_verification_enabled,
+                format!("Generating SRP values failed: {}", e.to_string()),
+            )
+        }
+    }
+
+    if email_verification_enabled {
+        let token = Uuid::new_v4().to_string();
+        state
+            .verification_tokens
+            .write()
+            .await
+            .insert(token.clone(), form.username.clone());
+
+        if let Err(e) = email::send_verification_email(&state.config, token, form).await {
+            return templates::RegisterTemplate::error(
+                email_verification_enabled,
+                format!("Unable to send verification email: {}", e),
+            );
+        }
+    }
+
+    templates::RegisterTemplate {
+        email_required: email_verification_enabled,
+        success: Some(true),
+        error: None,
+    }
+}
+
+pub async fn verify(
+    State(state): State<state::AppState>,
+    Path(token): Path<String>,
+) -> impl IntoResponse {
+    if let Some(username) = state.verification_tokens.read().await.get(&token) {
+        match db::verify_account(&state.pool, username).await {
+            Ok(()) => templates::VerifyTemplate {
+                username: Some(username.to_string()),
+                success: Some(true),
+                error: None,
             },
+            Err(e) => templates::VerifyTemplate::error(e.to_string()),
         }
     } else {
-        templates::RegisterTemplate {
-            success: Some(false),
-            error: Some(String::from("Generating SRP values failed")),
-        }
+        templates::VerifyTemplate::error("Invalid verify token")
     }
 }
 
 pub async fn change_password_form() -> impl IntoResponse {
-    templates::ChangePasswordForm::default()
+    templates::ChangePassword::default()
 }
 
 #[derive(Deserialize, Debug)]
@@ -214,14 +237,12 @@ pub async fn change_password(
         );
 
     if form.repeat_new_password != form.new_password {
-        return templates::ChangePasswordForm::error(
-            "New password does not match repeated password.",
-        )
-        .into_response();
+        return templates::ChangePassword::error("New password does not match repeated password.")
+            .into_response();
     }
 
-    if let Err(e) = recaptcha::verify_recaptcha(&state.config, form.recaptcha).await {
-        return templates::ChangePasswordForm::error(e.to_string()).into_response();
+    if let Err(e) = recaptcha::verify_recaptcha(&state.config, &form.recaptcha).await {
+        return templates::ChangePassword::error(e.to_string()).into_response();
     }
 
     if let Err(e) = crypto::verify_password(
@@ -230,30 +251,14 @@ pub async fn change_password(
         &account.v,
         &account.s,
     ) {
-        return match e {
-            errors::AuthenticationError::IncorrectPassword(_) => {
-                templates::ChangePasswordForm::error("Incorrect password").into_response()
-            }
-            errors::AuthenticationError::DatabaseError(e) => {
-                templates::ChangePasswordForm::error(format!("Unknown DB error: {}", e))
-                    .into_response()
-            }
-            errors::AuthenticationError::MissingSrpValues(_) => {
-                templates::ChangePasswordForm::error("Missing DB data").into_response()
-            }
-            errors::AuthenticationError::InvalidSrpValues(_) => {
-                templates::ChangePasswordForm::error("Dodgy DB data").into_response()
-            }
-            e => templates::ChangePasswordForm::error(format!("Unexpected error {}", e))
-                .into_response(),
-        };
+        return templates::ChangePassword::error(e.to_string()).into_response();
     }
 
     let (username, v_hex, s_hex) =
         match crypto::generate_srp_values(&account.username, &form.new_password) {
             Ok(r) => r,
             Err(e) => {
-                return templates::ChangePasswordForm::error(format!(
+                return templates::ChangePassword::error(format!(
                     "Unable to normalize new password: {}",
                     e
                 ))
@@ -261,8 +266,8 @@ pub async fn change_password(
             }
         };
 
-    if let Err(e) = db::update_srp_values(&state.pool, username, v_hex, s_hex).await {
-        return templates::ChangePasswordForm::error(format!(
+    if let Err(e) = db::update_srp_values(&state.pool, &username, &v_hex, &s_hex).await {
+        return templates::ChangePassword::error(format!(
             "Could not generate new SRP values: {}",
             e
         ))

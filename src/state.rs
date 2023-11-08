@@ -1,9 +1,9 @@
-use std::sync::Arc;
+use std::{sync::Arc, collections::HashMap};
 
 use ::config::Config;
 use mail_send::{SmtpClient, SmtpClientBuilder};
 use sqlx::{Pool, MySql, mysql::MySqlPoolOptions};
-use tokio::{net::TcpStream, sync::Mutex};
+use tokio::{net::TcpStream, sync::{Mutex, RwLock}};
 use tokio_rustls::client::TlsStream;
 
 use crate::{config, geolocate};
@@ -11,9 +11,9 @@ use crate::{config, geolocate};
 #[derive(Clone)]
 pub struct AppState {
     pub pool: Pool<MySql>,
-    pub smtp: Arc<Mutex<SmtpClient<TlsStream<TcpStream>>>>,
     pub mmdb_data: Arc<Vec<u8>>,
     pub config: Config,
+    pub verification_tokens: Arc<RwLock<HashMap<String, String>>>,
 }
 
 pub async fn init_state() -> AppState {
@@ -30,22 +30,14 @@ pub async fn init_state() -> AppState {
 
     let mmdb_data = Arc::new(geolocate::load_mmdb_data().expect("Loading MMDB data"));
 
-    let (smtp_host, smtp_port, smtp_username, smtp_password) = config::get_smtp_config(&config).expect("Valid SMTP configuration");
-    let smtp = Arc::new(Mutex::new(
-        SmtpClientBuilder::new(smtp_host, smtp_port)
-            .implicit_tls(false)
-            .credentials((smtp_username, smtp_password))
-            .connect()
-            .await
-            .expect("Connecting to the SMTP server."),
-    ));
-
     tracing::info!("Loaded MMDB ({}b)", mmdb_data.len());
+
+    let verification_tokens = Arc::new(RwLock::new(HashMap::new()));
 
     AppState {
         pool,
-        smtp,
         mmdb_data,
         config,
+        verification_tokens,
     }
 }

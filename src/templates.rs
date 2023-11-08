@@ -1,6 +1,6 @@
 use askama::Template;
 
-
+use crate::db;
 
 #[derive(Template, Default)]
 #[template(path = "error.html")]
@@ -25,13 +25,33 @@ impl LoginTemplate {
 #[derive(Template, Default)]
 #[template(path = "register.html")]
 pub struct RegisterTemplate {
+    pub email_required: bool,
     pub success: Option<bool>,
     pub error: Option<String>,
 }
 
 impl RegisterTemplate {
+    pub fn error(email_required: bool, message: impl Into<String>) -> Self {
+        Self {
+            email_required,
+            success: Some(false),
+            error: Some(message.into()),
+        }
+    }
+}
+
+#[derive(Template, Default)]
+#[template(path = "verify.html")]
+pub struct VerifyTemplate {
+    pub username: Option<String>,
+    pub success: Option<bool>,
+    pub error: Option<String>,
+}
+
+impl VerifyTemplate {
     pub fn error(message: impl Into<String>) -> Self {
         Self {
+            username: None,
             success: Some(false),
             error: Some(message.into()),
         }
@@ -46,12 +66,12 @@ pub struct AccountManagementTemplate {
 
 #[derive(Template, Default)]
 #[template(path = "change_password.html")]
-pub struct ChangePasswordForm {
+pub struct ChangePassword {
     pub success: Option<bool>,
     pub error: Option<String>,
 }
 
-impl ChangePasswordForm {
+impl ChangePassword {
     pub fn error(message: impl Into<String>) -> Self {
         Self {
             success: Some(false),

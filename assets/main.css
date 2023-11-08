@@ -153,3 +153,7 @@ button.submit {
 .error {
     color: #9e2012;
 }
+
+.error::first-letter {
+    text-transform: capitalize;
+}

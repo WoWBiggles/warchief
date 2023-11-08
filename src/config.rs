@@ -1,11 +1,16 @@
 use config::{Config, File, FileFormat, ConfigError};
 
+pub const SERVER_NAME: &str = "server_name";
+pub const DOMAIN: &str = "domain";
+
 pub const DB_URL: &str = "db.url";
 
 pub const SMTP_HOST: &str = "smtp.host";
 pub const SMTP_PORT: &str = "smtp.port";
 pub const SMTP_USERNAME: &str = "smtp.username";
 pub const SMTP_PASSWORD: &str = "smtp.password";
+
+pub const EMAIL_VERIFICATION_ENABLED: &str = "email_verification.enabled";
 
 pub const RECAPTCHA_SECRET: &str = "recaptcha.secret";
 

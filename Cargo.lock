@@ -3015,6 +3015,7 @@ dependencies = [
  "tower-sessions",
  "tracing",
  "tracing-subscriber",
+ "uuid",
  "wow_srp",
 ]
 

@@ -27,6 +27,7 @@ mod consts;
 mod crypto;
 mod db;
 mod errors;
+mod email;
 mod geolocate;
 mod recaptcha;
 mod routes;
@@ -84,6 +85,7 @@ async fn main() {
         .route("/login", post(routes::forms::login))
         .route("/register", get(routes::forms::register_form))
         .route("/register", post(routes::forms::register))
+        .route("/verify/:token", get(routes::forms::verify))
         .fallback(get_service(ServeDir::new("assets")))
         .layer(session_service)
         .with_state(shared_state);

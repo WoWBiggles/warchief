@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 
 use config::Config;
 use serde::Deserialize;
@@ -15,18 +14,14 @@ struct RecaptchaResponse {
     error_codes: Option<Vec<String>>,
 }
 
-pub async fn verify_recaptcha(config: &Config, token: String) -> Result<(), AuthenticationError> {
+pub async fn verify_recaptcha(config: &Config, token: &str) -> Result<(), AuthenticationError> {
     let secret = config.get_string(RECAPTCHA_SECRET)
         .expect("Recaptcha configuration requires a site secret.");
-
-    let mut body = HashMap::new();
-    body.insert("secret", secret);
-    body.insert("response", token);
 
     let client = reqwest::Client::new();
     let res = client
         .post("https://www.google.com/recaptcha/api/siteverify")
-        .form(&body)
+        .form(&(("secret", &secret), ("response", &token)))
         .send()
         .await;
 
