@@ -7,7 +7,7 @@ use crate::routes::forms::UserForm;
 
 pub async fn send_verification_email(
     config: &Config,
-    token: String,
+    token: &str,
     user: UserForm,
 ) -> Result<(), mail_send::Error> {
     let server_name = config

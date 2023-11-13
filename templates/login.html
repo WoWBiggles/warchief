@@ -7,11 +7,13 @@
     <form action="/login" id="login-form" method="POST" class="form">
         <div class="input-wrapper">
             <label for="username">Account Name</label> 
-            <input class="bordered-box input" type="text" name="username" id="username" required>
+            <input hx-swap="outerHTML"  hx-target="next .response" hx-post="/validate/username" class="bordered-box input" type="text" name="username" id="username" required>
+            <div class="response"></div>
         </div>
         <div class="input-wrapper">
             <label for="password">Account Password</label> 
-            <input class="bordered-box input" type="password" name="password" id="password" required>
+            <input hx-swap="outerHTML" hx-target="next .response" hx-post="/validate/password" class="bordered-box input" type="password" name="password" id="password" required>
+            <div class="response"></div>
         </div>
         <div>
             <button class="g-recaptcha submit" 

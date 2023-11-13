@@ -178,6 +178,8 @@ pub async fn register(
         }
     }
 
+    tracing::info!("Added account {} for {}", &form.username, addr.ip());
+
     if email_verification_enabled {
         let email_verification_timeout: u64 = state
             .config
@@ -192,12 +194,14 @@ pub async fn register(
             Duration::from_secs(60 * email_verification_timeout),
         );
 
-        if let Err(e) = email::send_verification_email(&state.config, token, form).await {
+        if let Err(e) = email::send_verification_email(&state.config, &token, form).await {
             return templates::RegisterTemplate::error(
                 email_verification_enabled,
                 format!("Unable to send verification email: {}", e),
             );
         }
+
+        tracing::info!("Saved verification token {} for {}, sent email", &token, addr.ip());
     }
 
     templates::RegisterTemplate {

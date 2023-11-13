@@ -4,9 +4,9 @@ Web interface to interact with vMangos accounts:
 		x Email verification (optional)
 		x IP checks (optional, GeoIP or IP blacklisting)
 		x Take into account banned ips table
-		- Password requirements (optional)
+		x Password requirements (NormalizedString requirements, use htmx for this)
 		x ReCaptcha (optional)
-		- Logs of failed attempts
+		- Logs of failed attempts (add new table to realmd via sqlx migrations)
 
 	- Login and manage accounts / view characters:
 		x Take into account banned accounts table
@@ -15,6 +15,7 @@ Web interface to interact with vMangos accounts:
 		- View characters on realms (optional if mangos db connection provided)
 
 	- GM:
+	 	- Search by account username / characters on account.
 		- View characters by name and linked accounts (optional if mangos db connection provided)
 		- See logins by IP
 		- See user stats split by country
@@ -22,6 +23,7 @@ Web interface to interact with vMangos accounts:
 		- View/modify IP ban lists
 
 	- Improvements:
-		- Cleanup UI/CSS (replace with maud, maybe add tailwind)
+		- Cleanup UI/CSS (replace with maud + htmx, maybe add tailwind)
+		- Add more wow borders
 		- Add config options for everything
 		- Cleanup verification tokens over time (crate for that?)

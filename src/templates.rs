@@ -77,3 +77,33 @@ impl ChangePassword {
         }
     }
 }
+
+#[derive(Template, Default)]
+#[template(path = "validation_response.html")]
+pub struct ValidationResponse {
+    pub success: Option<String>,
+    pub error: Option<String>,
+}
+
+impl ValidationResponse {
+    pub fn success(message: impl Into<String>) -> Self {
+        Self {
+            success: Some(message.into()),
+            error: None
+        }
+    }
+
+    pub fn error(message: impl Into<String>) -> Self {
+        Self {
+            success: None,
+            error: Some(message.into())
+        }
+    }
+
+    pub fn blank() -> Self {
+        Self {
+            success: None,
+            error: None,
+        }
+    }
+}

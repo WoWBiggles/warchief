@@ -82,6 +82,8 @@ async fn main() {
         .route("/register", get(routes::forms::register_form))
         .route("/register", post(routes::forms::register))
         .route("/verify/:token", get(routes::forms::verify))
+        .route("/validate/username", post(routes::validate::username))
+        .route("/validate/password", post(routes::validate::password))
         .fallback(get_service(ServeDir::new("assets")))
         .layer(session_service)
         .with_state(shared_state);

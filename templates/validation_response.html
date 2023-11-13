@@ -1,0 +1,9 @@
+{% if success.is_some() %}
+    <div class="response success">{{ success.as_ref().unwrap() }}</div>
+{% endif %}
+{% if error.is_some() %}
+    <div class="response error">{{ error.as_ref().unwrap() }}</div>
+{% endif %}
+{% if success.is_none() && error.is_none() %}
+    <div class="response"></div>
+{% endif %}
