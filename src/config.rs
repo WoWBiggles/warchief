@@ -25,7 +25,7 @@ pub fn init_config() -> Config {
     Config::builder()
         .add_source(File::new("config.toml", FileFormat::Toml))
         .build()
-        .expect("Config to build correctly.")
+        .expect("config.toml must be in the working directory")
 }
 
 pub fn get_smtp_config(config: &Config) -> Result<(String, u16, String, String), ConfigError> {
