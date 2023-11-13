@@ -16,11 +16,9 @@ impl IpLocation {
     pub fn new(country: Option<models::Country>, continent: Option<models::Continent>) -> Self {
         IpLocation {
             country_code: country
-                .map(|c| c.iso_code.map(|code| code.to_string()))
-                .flatten(),
+                .and_then(|c| c.iso_code.map(|code| code.to_string())),
             continent_code: continent
-                .map(|c| c.code.map(|code| code.to_string()))
-                .flatten(),
+                .and_then(|c| c.code.map(|code| code.to_string())),
         }
     }
 }
@@ -29,14 +27,14 @@ pub fn load_mmdb_data() -> Result<Vec<u8>, io::Error> {
     std::fs::read("static/GeoLite2-Country.mmdb")
 }
 
-fn geolocate_ip_country(mmdb_buffer: &Vec<u8>, ip: IpAddr) -> Result<IpLocation, Error> {
+fn geolocate_ip_country(mmdb_buffer: &[u8], ip: IpAddr) -> Result<IpLocation, Error> {
     let reader = Reader::<Country>::from_bytes(mmdb_buffer)?;
     let result = reader.lookup(ip)?;
 
     Ok(IpLocation::new(result.country, result.continent))
 }
 
-pub fn check_ip(config: &Config, mmdb_buffer: &Vec<u8>, ip: IpAddr) -> Result<bool, Error> {
+pub fn check_ip(config: &Config, mmdb_buffer: &[u8], ip: IpAddr) -> Result<bool, Error> {
     let geoip_enabled = config.get_bool(config::GEOIP_ENABLED).unwrap_or(false);
 
     if !geoip_enabled || ip.is_loopback() {
@@ -72,9 +70,9 @@ pub fn check_ip(config: &Config, mmdb_buffer: &Vec<u8>, ip: IpAddr) -> Result<bo
         blacklist_continents
     );
 
-    if whitelist_countries.len() > 0 && blacklist_countries.len() > 0 {
+    if !whitelist_countries.is_empty() && !blacklist_countries.is_empty() {
         panic!("Config has both whitelisted and blacklisted countries, please only define a blacklist or a whitelist");
-    } else if whitelist_countries.len() > 0 {
+    } else if !whitelist_countries.is_empty() {
         if whitelist_countries.contains(&location_country) {
             tracing::debug!("Country {} is whitelisted", location_country);
             return Ok(true);
@@ -82,16 +80,14 @@ pub fn check_ip(config: &Config, mmdb_buffer: &Vec<u8>, ip: IpAddr) -> Result<bo
             tracing::debug!("Country {} is not whitelisted", location_country);
             return Ok(false);
         }
-    } else if blacklist_countries.len() > 0 {
-        if blacklist_countries.contains(&location_country) {
-            tracing::debug!("Country {} is blacklisted", location_country);
-            return Ok(false);
-        }
+    } else if !blacklist_countries.is_empty() && blacklist_countries.contains(&location_country) {
+        tracing::debug!("Country {} is blacklisted", location_country);
+        return Ok(false);
     }
 
-    if whitelist_continents.len() > 0 && blacklist_continents.len() > 0 {
+    if !whitelist_continents.is_empty() && !blacklist_continents.is_empty() {
         panic!("Config has both whitelisted and blacklisted continents, please only define a blacklist or a whitelist");
-    } else if whitelist_continents.len() > 0 {
+    } else if !whitelist_continents.is_empty() {
         if whitelist_continents.contains(&location_continent) {
             tracing::debug!("Continent {} is whitelisted", location_continent);
             return Ok(true);
@@ -99,11 +95,9 @@ pub fn check_ip(config: &Config, mmdb_buffer: &Vec<u8>, ip: IpAddr) -> Result<bo
             tracing::debug!("Continent {} is not whitelisted", location_continent);
             return Ok(false);
         }
-    } else if blacklist_continents.len() > 0 {
-        if blacklist_continents.contains(&location_continent) {
-            tracing::debug!("Continent {} is blacklisted", location_continent);
-            return Ok(false);
-        }
+    } else if !blacklist_continents.is_empty() && blacklist_continents.contains(&location_continent) {
+        tracing::debug!("Continent {} is blacklisted", location_continent);
+        return Ok(false);
     }
 
     Ok(true)

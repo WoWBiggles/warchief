@@ -1,6 +1,6 @@
 use askama_axum::{IntoResponse, Response};
 use axum::Form;
-use http::StatusCode;
+
 use serde::Deserialize;
 use wow_srp::normalized_string::NormalizedString;
 
@@ -13,7 +13,7 @@ pub struct ValidationForm {
 }
 
 pub async fn username(Form(form): Form<ValidationForm>) -> Response {
-    if form.username.len() == 0 {
+    if form.username.is_empty() {
         return templates::ValidationResponse::error("Please enter a username!").into_response()
     }
     

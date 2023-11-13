@@ -43,7 +43,7 @@ pub async fn add_account(
             .fetch_all(pool)
             .await
     {
-        if existing_accounts.len() > 0 {
+        if !existing_accounts.is_empty() {
             return Err(AuthenticationError::ExistingUser);
         }
     }

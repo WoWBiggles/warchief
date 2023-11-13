@@ -32,7 +32,7 @@ pub async fn send_verification_email(
         ));
 
     let (smtp_host, smtp_port, smtp_username, smtp_password) =
-        config::get_smtp_config(&config).expect("Valid SMTP configuration");
+        config::get_smtp_config(config).expect("Valid SMTP configuration");
 
     let mut smtp = SmtpClientBuilder::new(smtp_host, smtp_port)
         .implicit_tls(false)

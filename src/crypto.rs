@@ -16,8 +16,8 @@ pub fn generate_srp_values(
     let v = SrpVerifier::from_username_and_password(username, password);
 
     let (_, verifier_be) =
-        BigInt::from_bytes_le(Sign::Plus, &v.password_verifier().to_owned()).to_bytes_be();
-    let (_, salt_be) = BigInt::from_bytes_le(Sign::Plus, &v.salt().to_owned()).to_bytes_be();
+        BigInt::from_bytes_le(Sign::Plus, v.password_verifier().as_ref()).to_bytes_be();
+    let (_, salt_be) = BigInt::from_bytes_le(Sign::Plus, v.salt().as_ref()).to_bytes_be();
 
     Ok((
         v.username().to_owned(),

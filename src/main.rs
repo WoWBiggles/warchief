@@ -46,8 +46,8 @@ async fn auth_middleware<B>(session: Session, request: Request<B>, next: Next<B>
         }
     }
 
-    let response = next.run(request).await;
-    response
+    
+    next.run(request).await
 }
 
 #[tokio::main]

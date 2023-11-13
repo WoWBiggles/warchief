@@ -40,7 +40,7 @@ pub async fn verify_recaptcha(config: &Config, token: &str) -> Result<(), Authen
             }
             Err(e) => Err(AuthenticationError::FailedRecaptcha(format!(
                 "Failed to parse recaptcha response: {}",
-                e.to_string()
+                e
             ))),
         }
     } else {

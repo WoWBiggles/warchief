@@ -40,9 +40,7 @@ pub async fn login(
     match geolocate::check_ip(&state.config, &state.mmdb_data, addr.ip()) {
         Ok(allowed) => {
             if !allowed {
-                return templates::LoginTemplate::error(format!(
-                    "Your country or continent is banned from creating an account on this server."
-                ))
+                return templates::LoginTemplate::error("Your country or continent is banned from creating an account on this server.")
                 .into_response();
             }
         }
@@ -134,9 +132,7 @@ pub async fn register(
         return templates::RegisterTemplate {
             email_required: email_verification_enabled,
             success: Some(false),
-            error: Some(format!(
-                "Your IP is banned from creating an account on this server."
-            )),
+            error: Some("Your IP is banned from creating an account on this server.".to_string()),
         };
     }
 
@@ -146,7 +142,7 @@ pub async fn register(
                 return templates::RegisterTemplate {
                     email_required: email_verification_enabled,
                     success: Some(false),
-                    error: Some(format!("Your country or continent is banned from creating an account on this server."))
+                    error: Some("Your country or continent is banned from creating an account on this server.".to_string())
                 };
             }
         }
@@ -173,7 +169,7 @@ pub async fn register(
         Err(e) => {
             return templates::RegisterTemplate::error(
                 email_verification_enabled,
-                format!("Generating SRP values failed: {}", e.to_string()),
+                format!("Generating SRP values failed: {}", e),
             )
         }
     }
