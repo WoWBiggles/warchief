@@ -1,7 +1,7 @@
 use config::Config;
 use serde::Deserialize;
 
-use crate::{config::RECAPTCHA_SECRET, errors::AuthenticationError};
+use crate::{config::{RECAPTCHA_SECRET, RECAPTCHA_ENABLED}, errors::AuthenticationError};
 
 #[derive(Deserialize, Debug)]
 struct RecaptchaResponse {
@@ -14,9 +14,16 @@ struct RecaptchaResponse {
 }
 
 pub async fn verify_recaptcha(config: &Config, token: &str) -> Result<(), AuthenticationError> {
+    let enabled = config
+        .get_bool(RECAPTCHA_ENABLED)
+        .expect("Recaptcha configuration required an enabled bool");
     let secret = config
         .get_string(RECAPTCHA_SECRET)
-        .expect("Recaptcha configuration requires a site secret.");
+        .expect("Recaptcha configuration requires a site secret");
+
+    if !enabled {
+        return Ok(());
+    }
 
     let client = reqwest::Client::new();
     let res = client

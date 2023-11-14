@@ -1,4 +1,4 @@
-use std::{net::SocketAddr, time::Duration};
+use std::{net::{SocketAddr, IpAddr}, time::Duration};
 
 use askama_axum::IntoResponse;
 use axum::{
@@ -76,6 +76,10 @@ pub async fn login(
     if email_verification_enabled && !account.email_verified {
         return templates::LoginTemplate::error("The email on this account has not been verified.")
             .into_response();
+    }
+
+    if let Err(e) = db::add_login_attempt(&state.pool, &account.id, addr.ip(), true, None).await {
+        tracing::warn!("Failed to log login attempt for {}: {}", &account.username, e)
     }
 
     if let Err(e) = session.insert(consts::SESSION_ACCOUNT_DETAILS, account) {

@@ -4,9 +4,9 @@ Web interface to interact with vMangos accounts:
 		x Email verification (optional)
 		x IP checks (optional, GeoIP or IP blacklisting)
 		x Take into account banned ips table
-		x Password requirements (NormalizedString requirements, use htmx for this)
+		x Password validation (NormalizedString requirements, use htmx for this)
 		x ReCaptcha (optional)
-		- Logs of failed attempts (add new table to realmd via sqlx migrations)
+		- Logs of login attempts (add new table to realmd via sqlx migrations)
 
 	- Login and manage accounts / view characters:
 		x Take into account banned accounts table
@@ -23,6 +23,9 @@ Web interface to interact with vMangos accounts:
 		- View/modify IP ban lists
 
 	- Improvements:
+	 	- Extract controller logic from routes
+			- Controllers should return `thiserror` enums, routes should handle errors and return templates.
+			- Especially useful for login attempt logging, can extract logic to a controller and then add error wrapping.
 		- Cleanup UI/CSS (replace with maud + htmx, maybe add tailwind)
 		- Add more wow borders
 		- Add config options for everything

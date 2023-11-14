@@ -29,6 +29,11 @@ pub async fn init_state() -> AppState {
         .await
         .expect("Connecting to MySql DB");
 
+    sqlx::migrate!("./migrations")
+        .run(&pool)
+        .await
+        .expect("failed to find migrations");
+
     let mmdb_data = Arc::new(geolocate::load_mmdb_data().expect("Loading MMDB data"));
 
     tracing::info!("Loaded MMDB ({}b)", mmdb_data.len());

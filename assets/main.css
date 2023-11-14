@@ -2,6 +2,7 @@
     outline: none;
 }
 
+/* TODO: Consider replacing with base64 to avoid distributing assets folder with font files? Or find another way to embed into binary. */
 @font-face {
     font-family: 'Friz Quadrata';
     src: url(/FrizQuadrataTT.woff2) format('woff2'),
@@ -31,7 +32,7 @@ body {
     position: fixed;
     top: 0;
 
-    background-image: url(/tirisfal.jpg);
+    background-image: url(/banner.jpg);
 
     background-size: cover;
     background-position: bottom;
@@ -41,8 +42,8 @@ body {
     width: 100vw;
     height: 40vh;
 
-    @supports (background-image: url(/tirisfal.webp)) {
-        background-image: url(/tirisfal.webp);
+    @supports (background-image: url(/banner.webp)) {
+        background-image: url(/banner.webp);
     }
 }
 

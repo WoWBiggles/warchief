@@ -5,7 +5,7 @@ use sqlx::{MySql, Pool};
 
 use crate::errors::AuthenticationError;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum GmLevel {
     None = 0,
 }
@@ -20,7 +20,7 @@ impl From<u8> for GmLevel {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Account {
     pub id: u32,
     pub username: String,
@@ -75,6 +75,20 @@ pub async fn verify_account(pool: &Pool<MySql>, username: &str) -> Result<(), sq
     sqlx::query!(
         "UPDATE account SET email_verif = 1 WHERE username = ?",
         username
+    )
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+// TODO: Convert last two args to LoginResult enum.
+pub async fn add_login_attempt(pool: &Pool<MySql>, id: &u32, ip: IpAddr, successful: bool, fail_reason: Option<&str>) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "INSERT INTO warchief_login_attempts (id, ip, successful, fail_reason) VALUES (?, ?, ?, ?)",
+        id,
+        ip.to_string(),
+        successful,
+        fail_reason
     )
     .execute(pool)
     .await?;
