@@ -1,18 +1,31 @@
 use num_bigint::{BigInt, Sign};
+use thiserror::Error;
 use wow_srp::{
-    client::SrpClientUser, error::NormalizedStringError, normalized_string::NormalizedString,
+    client::SrpClientUser, normalized_string::NormalizedString,
     server::SrpVerifier, PublicKey, GENERATOR, LARGE_SAFE_PRIME_LITTLE_ENDIAN,
     PASSWORD_VERIFIER_LENGTH, SALT_LENGTH,
 };
 
-use crate::errors::AuthenticationError;
+#[derive(Error, Debug)]
+pub enum CryptoError {
+    #[error("corrupt srp value: {0}")]
+    CorruptSrpValue(String),
+    #[error("invalid username: {0}")]
+    InvalidUsername(wow_srp::error::NormalizedStringError),
+    #[error("invalid password: {0}")]
+    InvalidPassword(wow_srp::error::NormalizedStringError),
+    #[error("invalid public key: {0}")]
+    InvalidPublicKey(#[from] wow_srp::error::InvalidPublicKeyError),
+    #[error("failed login")]
+    FailedLogin(#[from] wow_srp::error::MatchProofsError),
+}
 
 pub fn generate_srp_values(
     username: &String,
     password: &String,
-) -> Result<(String, String, String), NormalizedStringError> {
-    let username = NormalizedString::new(username)?;
-    let password = NormalizedString::new(password)?;
+) -> Result<(String, String, String), CryptoError> {
+    let username = NormalizedString::new(username).map_err(|e| CryptoError::InvalidUsername(e))?;
+    let password = NormalizedString::new(password).map_err(|e| CryptoError::InvalidPassword(e))?;
     let v = SrpVerifier::from_username_and_password(username, password);
 
     let (_, verifier_be) =
@@ -31,25 +44,25 @@ pub fn verify_password(
     password: &String,
     password_verifier: &String,
     salt: &String,
-) -> Result<(), AuthenticationError> {
-    let username = NormalizedString::new(username)?;
-    let password = NormalizedString::new(password)?;
+) -> Result<(), CryptoError> {
+    let username = NormalizedString::new(username).map_err(|e| CryptoError::InvalidUsername(e))?;
+    let password = NormalizedString::new(password).map_err(|e| CryptoError::InvalidPassword(e))?;
 
     let verifier = hex::decode(password_verifier)
-        .map_err(|_| AuthenticationError::InvalidSrpValues(String::from("v")))?;
+        .map_err(|_| CryptoError::CorruptSrpValue(String::from("v")))?;
     let salt =
-        hex::decode(salt).map_err(|_| AuthenticationError::InvalidSrpValues(String::from("s")))?;
+        hex::decode(salt).map_err(|_| CryptoError::CorruptSrpValue(String::from("s")))?;
 
     let (_, verifier_le) = BigInt::from_bytes_be(Sign::Plus, &verifier).to_bytes_le();
     let (_, salt_le) = BigInt::from_bytes_be(Sign::Plus, &salt).to_bytes_le();
 
     let verifier_le: [u8; PASSWORD_VERIFIER_LENGTH as usize] = verifier_le
         .try_into()
-        .map_err(|_| AuthenticationError::InvalidSrpValues(String::from("v")))?;
+        .map_err(|_| CryptoError::CorruptSrpValue(String::from("v")))?;
 
     let salt_le: [u8; SALT_LENGTH as usize] = salt_le
         .try_into()
-        .map_err(|_| AuthenticationError::InvalidSrpValues(String::from("s")))?;
+        .map_err(|_| CryptoError::CorruptSrpValue(String::from("s")))?;
 
     let verifier = SrpVerifier::from_database_values(username.clone(), verifier_le, salt_le);
     let server_proof = verifier.into_proof();
@@ -72,8 +85,6 @@ pub fn verify_password(
 
 #[cfg(test)]
 mod tests {
-    use wow_srp::error::NormalizedStringError;
-
     use super::*;
 
     #[test]
@@ -98,9 +109,9 @@ mod tests {
             &password_verifier,
             &salt,
         );
-        if let Err(AuthenticationError::IncorrectPassword(_)) = result {
+        if let Err(CryptoError::FailedLogin(_)) = result {
         } else {
-            panic!("Expected an IncorrectPassword error {:?}", result);
+            panic!("Expected a FailedLogin error {:?}", result);
         }
     }
 
@@ -110,9 +121,9 @@ mod tests {
             &String::from("waytoolongforausernameomegalul"),
             &String::from("correct"),
         );
-        if let Err(NormalizedStringError::StringTooLong) = result {
+        if let Err(CryptoError::InvalidUsername(_)) = result {
         } else {
-            panic!("Expected a StringtooLong error {:?}", result);
+            panic!("Expected a InvalidUsername error {:?}", result);
         }
     }
 }

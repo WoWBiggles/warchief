@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS `warchief_login_attempts` (
   `date` bigint(40) NOT NULL DEFAULT UNIX_TIMESTAMP(NOW()) COMMENT 'Attempt date',
   `ip` varchar(30) NOT NULL,
   `successful` tinyint(1) NOT NULL COMMENT 'Successful login attempt',
-  `fail_reason` varchar(50) NOT NULL DEFAULT '' COMMENT 'Reason for login failure (if not successful)',
+  `fail_reason` varchar(50) COMMENT 'Reason for login failure (if not successful)',
   PRIMARY KEY (`id`,`date`),
   UNIQUE KEY `attempt_id` (`attempt_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;

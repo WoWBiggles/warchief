@@ -1,4 +1,4 @@
-use std::{net::{SocketAddr, IpAddr}, time::Duration};
+use std::{net::SocketAddr, time::Duration};
 
 use askama_axum::IntoResponse;
 use axum::{
@@ -10,7 +10,9 @@ use serde::Deserialize;
 use tower_sessions::Session;
 use uuid::Uuid;
 
-use crate::{config, consts, crypto, db, email, geolocate, recaptcha, state, templates};
+use crate::{
+    config, consts, controllers, crypto, db, email, geolocate, recaptcha, state, templates,
+};
 
 pub async fn login_form() -> impl IntoResponse {
     templates::LoginTemplate::default()
@@ -20,9 +22,9 @@ pub async fn login_form() -> impl IntoResponse {
 pub struct UserForm {
     pub email: Option<String>,
     pub username: String,
-    password: String,
+    pub password: String,
     #[serde(rename = "g-recaptcha-response")]
-    recaptcha: String,
+    pub recaptcha: String,
 }
 
 pub async fn login(
@@ -33,61 +35,115 @@ pub async fn login(
 ) -> impl IntoResponse {
     tracing::info!("Login attempt from {}", addr.ip());
 
-    if let Err(e) = recaptcha::verify_recaptcha(&state.config, &form.recaptcha).await {
-        return templates::LoginTemplate::error(e.to_string()).into_response();
-    }
-
-    match geolocate::check_ip(&state.config, &state.mmdb_data, addr.ip()) {
-        Ok(allowed) => {
-            if !allowed {
-                return templates::LoginTemplate::error("Your country or continent is banned from creating an account on this server.")
-                .into_response();
-            }
-        }
-        Err(e) => {
-            return templates::LoginTemplate::error(format!(
-                "Failed to geolocate your IP: {:?}",
-                e
-            ))
-            .into_response();
-        }
-    }
-
-    let account = match db::get_account(&state.pool, &form.username).await {
+    match controllers::login::attempt_login(session, addr.ip(), &state, &form).await {
         Ok(account) => {
-            match crypto::verify_password(&form.username, &form.password, &account.v, &account.s) {
-                Ok(_) => account,
-                Err(e) => return templates::LoginTemplate::error(e.to_string()).into_response(),
+            if let Err(e) =
+                db::add_login_attempt(&state.pool, &account.id, addr.ip(), true, None).await
+            {
+                tracing::warn!(
+                    "Failed to log login attempt for {}: {}",
+                    &account.username,
+                    e
+                )
             }
+            Redirect::to("/account_management").into_response()
         }
         Err(e) => {
-            return templates::LoginTemplate::error(format!(
-                "Could not find an account for that username {:?}",
-                e
-            ))
-            .into_response()
+            // If the account exists, fetch the account ID and log the failed login attempt.
+            if !matches!(e, controllers::login::LoginError::AccountDoesNotExist) {
+                if let Ok(account) = db::get_account(&state.pool, &form.username).await {
+                    if let Err(e) = db::add_login_attempt(
+                        &state.pool,
+                        &account.id,
+                        addr.ip(),
+                        false,
+                        Some(&e.to_string()),
+                    )
+                    .await
+                    {
+                        tracing::warn!(
+                            "Failed to log login attempt for {}: {}",
+                            &account.username,
+                            e
+                        )
+                    }
+                }
+            }
+
+            match e {
+                controllers::login::LoginError::AccountDoesNotExist => {
+                    templates::LoginTemplate::error("No account exists with that username.")
+                        .into_response()
+                }
+                controllers::login::LoginError::FailedRecaptcha(_) => {
+                    templates::LoginTemplate::error("You have failed your recaptcha.")
+                        .into_response()
+                }
+                controllers::login::LoginError::FailedToGeolocate(_) => {
+                    tracing::warn!("could not geolocate IP {}", addr.ip());
+                    templates::LoginTemplate::error(
+                        "Your IP could not be geo-located, please contact an admin.",
+                    )
+                    .into_response()
+                }
+                controllers::login::LoginError::FailedGeolocationChecks => {
+                    templates::LoginTemplate::error(
+                        "Your IP is from a country or continent banned from this server.",
+                    )
+                    .into_response()
+                }
+                controllers::login::LoginError::DatabaseError(e) => {
+                    templates::LoginTemplate::error(format!("Unknown DB error: {}", e))
+                        .into_response()
+                }
+                controllers::login::LoginError::UnverifiedEmail => templates::LoginTemplate::error(
+                    "Please verify your email address before logging in.",
+                )
+                .into_response(),
+                controllers::login::LoginError::CryptoError(e) => match e {
+                    crypto::CryptoError::CorruptSrpValue(v) => {
+                        tracing::error!("SRP values for {} are corrupted: {}", &form.username, v);
+                        templates::LoginTemplate::error(format!(
+                            "Contact admin, DB values are corrupted: {}",
+                            v
+                        ))
+                        .into_response()
+                    }
+                    crypto::CryptoError::InvalidUsername(_) => {
+                        templates::LoginTemplate::error("You have entered an invalid username.")
+                            .into_response()
+                    }
+                    crypto::CryptoError::InvalidPassword(_) => {
+                        templates::LoginTemplate::error("You have entered an invalid password.")
+                            .into_response()
+                    }
+                    crypto::CryptoError::InvalidPublicKey(e) => {
+                        tracing::error!(
+                            "SRP public key for {} is corrupted: {}",
+                            &form.username,
+                            e
+                        );
+                        templates::LoginTemplate::error(format!(
+                            "Contact admin, public key generation from DB values failed: {}.",
+                            e
+                        ))
+                        .into_response()
+                    }
+                    crypto::CryptoError::FailedLogin(_) => {
+                        templates::LoginTemplate::error("Incorrect password.").into_response()
+                    }
+                },
+                controllers::login::LoginError::SessionError(e) => {
+                    tracing::error!("Unable to save session of {}: {}", &form.username, e);
+                    templates::LoginTemplate::error(format!(
+                        "Contact admin, unable to save session data: {}",
+                        e
+                    ))
+                    .into_response()
+                }
+            }
         }
-    };
-
-    let email_verification_enabled = state
-        .config
-        .get_bool(config::EMAIL_VERIFICATION_ENABLED)
-        .unwrap_or(false);
-    if email_verification_enabled && !account.email_verified {
-        return templates::LoginTemplate::error("The email on this account has not been verified.")
-            .into_response();
     }
-
-    if let Err(e) = db::add_login_attempt(&state.pool, &account.id, addr.ip(), true, None).await {
-        tracing::warn!("Failed to log login attempt for {}: {}", &account.username, e)
-    }
-
-    if let Err(e) = session.insert(consts::SESSION_ACCOUNT_DETAILS, account) {
-        return templates::LoginTemplate::error(format!("Failed to save session: {:?}", e))
-            .into_response();
-    }
-
-    Redirect::to("/account_management").into_response()
 }
 
 pub async fn register_form(State(state): State<state::AppState>) -> impl IntoResponse {
@@ -201,7 +257,11 @@ pub async fn register(
             );
         }
 
-        tracing::info!("Saved verification token {} for {}, sent email", &token, addr.ip());
+        tracing::info!(
+            "Saved verification token {} for {}, sent email",
+            &token,
+            addr.ip()
+        );
     }
 
     templates::RegisterTemplate {

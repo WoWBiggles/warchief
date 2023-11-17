@@ -2,8 +2,17 @@ use std::net::IpAddr;
 
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Pool};
+use thiserror::Error;
 
 use crate::errors::AuthenticationError;
+
+#[derive(Error, Debug)]
+pub enum DatabaseError {
+    #[error("missing values in DB: {0}")]
+    MissingValues(String),
+    #[error("SQL error: {0}")]
+    SqlError(#[from] sqlx::Error),
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum GmLevel {
@@ -116,7 +125,7 @@ pub async fn update_srp_values(
 pub async fn get_account(
     pool: &Pool<MySql>,
     username: &str,
-) -> Result<Account, AuthenticationError> {
+) -> Result<Account, DatabaseError> {
     match sqlx::query!("SELECT a.id, a.username, a.gmlevel, a.v, a.s, a.email_verif, ab.banid as `ban_id?` FROM account a LEFT JOIN account_banned ab ON ab.id = a.id AND ab.unbandate > UNIX_TIMESTAMP(NOW()) WHERE username = ?", username)
             .fetch_one(pool)
             .await
@@ -127,12 +136,12 @@ pub async fn get_account(
                 username: account.username,
                 email_verified: account.email_verif == 1,
                 gmlevel: account.gmlevel.into(),
-                v: account.v.ok_or(AuthenticationError::MissingSrpValues(String::from("v")))?,
-                s: account.s.ok_or(AuthenticationError::MissingSrpValues(String::from("s")))?,
+                v: account.v.ok_or(DatabaseError::MissingValues(String::from("v")))?,
+                s: account.s.ok_or(DatabaseError::MissingValues(String::from("s")))?,
                 banned: account.ban_id.is_some(),
             })
         },
-        Err(e) => Err(AuthenticationError::DatabaseError(e)),
+        Err(e) => Err(DatabaseError::SqlError(e)),
     }
 }
 

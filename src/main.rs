@@ -20,6 +20,7 @@ use tower_sessions::{cookie::time::Duration, Expiry, MemoryStore, Session, Sessi
 
 mod config;
 mod consts;
+mod controllers;
 mod crypto;
 mod db;
 mod email;

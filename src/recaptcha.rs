@@ -1,7 +1,16 @@
 use config::Config;
 use serde::Deserialize;
+use thiserror::Error;
 
-use crate::{config::{RECAPTCHA_SECRET, RECAPTCHA_ENABLED}, errors::AuthenticationError};
+use crate::config::{RECAPTCHA_ENABLED, RECAPTCHA_SECRET};
+
+#[derive(Error, Debug)]
+pub enum RecaptchaError {
+    #[error("failed recaptcha with codes: {0}")]
+    ExpectedFailure(String),
+    #[error("failed to verify recaptcha result: {0}")]
+    Network(#[from] reqwest::Error),
+}
 
 #[derive(Deserialize, Debug)]
 struct RecaptchaResponse {
@@ -13,7 +22,7 @@ struct RecaptchaResponse {
     error_codes: Option<Vec<String>>,
 }
 
-pub async fn verify_recaptcha(config: &Config, token: &str) -> Result<(), AuthenticationError> {
+pub async fn verify_recaptcha(config: &Config, token: &str) -> Result<(), RecaptchaError> {
     let enabled = config
         .get_bool(RECAPTCHA_ENABLED)
         .expect("Recaptcha configuration required an enabled bool");
@@ -30,29 +39,17 @@ pub async fn verify_recaptcha(config: &Config, token: &str) -> Result<(), Authen
         .post("https://www.google.com/recaptcha/api/siteverify")
         .form(&(("secret", &secret), ("response", &token)))
         .send()
-        .await;
+        .await?;
 
-    if let Ok(res) = res {
-        match res.json::<RecaptchaResponse>().await {
-            Ok(json) => {
-                tracing::info!("Got score {}", json.score.unwrap_or(0f32));
-                if !json.success {
-                    Err(AuthenticationError::FailedRecaptcha(format!(
-                        "Failed with error_codes: {:?}",
-                        json.error_codes
-                    )))
-                } else {
-                    Ok(())
-                }
-            }
-            Err(e) => Err(AuthenticationError::FailedRecaptcha(format!(
-                "Failed to parse recaptcha response: {}",
-                e
-            ))),
-        }
+    let json = res.json::<RecaptchaResponse>().await?;
+    tracing::info!("Got score {}", json.score.unwrap_or(0f32));
+    if !json.success {
+        Err(RecaptchaError::ExpectedFailure(
+            json.error_codes
+                .map(|codes| codes.join(", "))
+                .unwrap_or(String::from("")),
+        ))
     } else {
-        Err(AuthenticationError::FailedRecaptcha(String::from(
-            "Recaptcha request failed",
-        )))
+        Ok(())
     }
 }
